@@ -1,0 +1,651 @@
+:root {
+  color-scheme: dark;
+  --green: #65d7c3;
+  --dark: #102d31;
+  --orange: #f0aa7b;
+  --muted: #a3b4c8;
+  --line: #2b3a4b;
+  --cream: #101823;
+  --scene-bg: #111c29;
+  --plot-grid: #2a3d4e;
+  --plot-axis: #829db5;
+  background: #101823;
+  color: #e1eaf3;
+}
+body {
+  background: #101823;
+}
+:focus-visible {
+  outline: 2px solid #f0b47e;
+  outline-offset: 4px;
+}
+::selection {
+  color: #eafff9;
+  background: #285d59;
+}
+.sidebar {
+  background: #0c141f;
+  border-color: #263443;
+}
+.topbar {
+  background: #101823;
+  border-color: #263443;
+}
+.brand {
+  color: #e9f3fa;
+}
+.brand > span:not(.brand-mark),
+.footer-brand span {
+  color: #6ed4c1;
+}
+.brand-mark {
+  background: #213e43;
+  color: #8ce7d4;
+}
+.nav-main,
+.lesson-link {
+  color: #acbfd0;
+}
+.nav-main.active,
+.lesson-link.active {
+  background: #173638;
+  color: #83e1cd;
+}
+.nav-main:hover,
+.lesson-link:hover {
+  background: #192b3a;
+  color: #d8f7ee;
+}
+.lesson-number {
+  border-color: #34485a;
+  color: #a8bbcc;
+}
+.lesson-number.done,
+.lesson-link.active .lesson-number {
+  background: #2c7568;
+  color: #f0fffb;
+  border-color: #438f7e;
+}
+.lesson-link > i,
+.progress-bar > i {
+  background: #6ad7c2;
+}
+.progress-bar {
+  background: #253647;
+}
+.progress-caption strong {
+  color: #81e0ca;
+}
+.tiny-line {
+  background: #718da7;
+}
+.hero {
+  background:
+    radial-gradient(ellipse at 80% 40%, #1a3b4580, transparent 65%),
+    linear-gradient(125deg, #192b3b, #10232c);
+  border: 1px solid #304958;
+}
+.hero h1 {
+  color: #edf5fb;
+}
+.hero h1 em {
+  color: #7cddca;
+}
+.hero-copy > p,
+.hero .hero-foot {
+  color: #b3cbd3;
+}
+.hero-badge {
+  color: #b1d6cc;
+}
+.hero-badge > span {
+  background: #8cd9bf;
+}
+.hero-button {
+  background: #edb17d;
+  color: #172532;
+  border: 1px solid #f5c497;
+}
+.hero-button:hover {
+  background: #f4c196;
+}
+.floating-reading {
+  background: #1c3242;
+  border-color: #3b5a6a;
+  color: #f3c091;
+  box-shadow: 0 12px 28px #02091166;
+}
+.floating-reading > span {
+  color: #bed0db;
+}
+.art-index,
+.art-note {
+  color: #a8c7c8;
+}
+.art-cross {
+  color: #91b8bd;
+}
+.orbit {
+  border-color: #679da32a;
+}
+.approach-strip {
+  color: #a7bbcd;
+}
+.approach-strip strong {
+  color: #e0eef6;
+}
+.approach-strip i {
+  color: #9cb7c9;
+  border-color: #354b5d;
+}
+.lesson-card,
+.concept-card,
+.source-cards > a {
+  background: #172230;
+  border-color: #2b3c4e;
+}
+.lesson-card:hover,
+.concept-card:hover,
+.source-cards > a:hover {
+  background: #1b2b39;
+  border-color: #5b958c;
+  box-shadow: 0 8px 24px #00000024;
+}
+.lesson-card:last-child {
+  background: #17302f;
+  border-color: #345a52;
+}
+.lesson-card.completed {
+  border-color: #407f6e;
+}
+.card-icon {
+  background: #1e3b3a;
+  color: #83d9c6;
+}
+.type-1 {
+  background: #3a302b;
+  color: #e8b88b;
+}
+.type-2 {
+  background: #21374b;
+  color: #95c5eb;
+}
+.type-3 {
+  background: #323445;
+  color: #c4b7e8;
+}
+.card-arrow,
+.card-check {
+  color: #85d6bd;
+}
+.why-banner {
+  background: #1b2b36;
+  border-color: #324755;
+}
+.why-symbol {
+  background: #243b40;
+  border-color: #416063;
+  color: #89d6c2;
+}
+.bottom-note,
+.footer p {
+  color: #9fb1c4;
+}
+.footer {
+  border-color: #293a4a;
+}
+.footer-brand {
+  color: #d2e6ee;
+}
+.btn.primary,
+.primary {
+  background: #6cd8c2;
+  color: #102923;
+  border: 1px solid #8ae5d1;
+}
+.btn.primary:hover,
+.primary:hover {
+  background: #88e5d0;
+}
+.btn.secondary,
+.secondary {
+  background: #203143;
+  color: #d2e4ef;
+  border-color: #3b5266;
+}
+.btn.secondary:hover,
+.secondary:hover {
+  background: #2a4052;
+}
+.text-link,
+.term {
+  color: #82dcc6;
+}
+.term {
+  border-color: #5f9e93;
+}
+.term:hover {
+  color: #b9ffeb;
+  background: #21443f;
+}
+.quiz,
+.quiz.small,
+.practice-panel > .quiz {
+  background: #1a2734;
+  border-color: #344958;
+}
+.quiz-options > button {
+  background: #142331;
+  border-color: #354c5d;
+  color: #c9dbe7;
+}
+.quiz-options > button:hover {
+  background: #233b49;
+}
+.option-letter {
+  background: #2d4352;
+  color: #c6deeb;
+}
+.quiz-options .selected,
+.quiz-options .correct {
+  background: #193e36;
+  color: #b9f4d9;
+  border-color: #5eac8d;
+}
+.quiz-options .retry {
+  background: #45362a;
+  color: #f1c79c;
+  border-color: #9c7956;
+}
+.feedback {
+  background: #1f3b36;
+  color: #c4e6d9;
+}
+.feedback strong {
+  color: #9fe8c7;
+}
+.simulation {
+  background: #14202d;
+  border-color: #345064;
+}
+.sim-header {
+  background: #1a2b3b;
+  border-color: #345064;
+}
+.sim-header > span {
+  color: #8dcfc4;
+}
+.reset {
+  color: #c0d1df;
+}
+.reset:hover {
+  color: #93e4cf;
+}
+.controls {
+  border-color: #2d4254;
+}
+.segmented {
+  background: #0f1b28;
+}
+.segmented > button {
+  color: #a9bdd0;
+}
+.segmented > button[aria-pressed="true"] {
+  background: #264742;
+  color: #a1efdb;
+  box-shadow: none;
+}
+.stat,
+.stat.accent {
+  background: #203142;
+}
+.stat.accent {
+  border-left: 2px solid #60cbb7;
+}
+.stat > span {
+  color: #b0c4d6;
+}
+.stat > strong,
+.stat.accent > strong {
+  color: #e5f5fb;
+}
+.stat.accent > strong {
+  color: #99efda;
+}
+.range-control output {
+  color: #b2eee0;
+}
+.range-control output > small {
+  color: #adc2d1;
+}
+.range-control input::-webkit-slider-runnable-track {
+  background: #385364;
+}
+.range-control input::-webkit-slider-thumb {
+  background: #78ddc6;
+  border-color: #193441;
+  box-shadow: 0 0 0 1px #72c7b7;
+}
+.range-control input::-moz-range-track {
+  background: #385364;
+}
+.range-control input::-moz-range-thumb {
+  background: #78ddc6;
+  border-color: #193441;
+}
+input[type="checkbox"] {
+  accent-color: #76d9c4;
+}
+.field-label select,
+select,
+.field-label textarea,
+.numeric-inputs input {
+  background: #101e2c;
+  color: #e2edf7;
+  border-color: #476078;
+}
+.numeric-inputs input[aria-invalid="true"] {
+  border-color: #d5a179;
+}
+.field-label textarea::placeholder,
+.search-box input::placeholder {
+  color: #9baec1;
+}
+.search-box {
+  background: #162433;
+  border-color: #3a5065;
+}
+.search-box input {
+  color: #e5eff9;
+}
+.body.hot {
+  background: #3c2b28;
+  border-color: #a2785b;
+  color: #f1b789;
+}
+.body.cold {
+  background: #1c3546;
+  border-color: #4e849e;
+  color: #9ad6ed;
+}
+.energy-arrow {
+  color: #d4bd9a;
+}
+.chart {
+  border-color: #2c4255;
+}
+.simulation svg text {
+  fill: #c4d6e6;
+}
+.simulation svg line,
+.simulation svg path,
+.simulation svg polyline {
+  vector-effect: non-scaling-stroke;
+}
+.instrument {
+  background: #172b38;
+  border-color: #3a5262;
+}
+.instrument-icon {
+  color: #a3dacd;
+  background: #23423f;
+}
+.signal-meter {
+  background: #1c3040;
+  border-color: #496275;
+}
+.converted {
+  background: #254339;
+  color: #b6f1d7;
+}
+.insight,
+.translation,
+.plot-annotations > span {
+  background: #203b3c;
+  color: #b2ded1;
+}
+.calculation,
+.live-calculation {
+  background: #1b303a;
+  border-color: #3a5961;
+  color: #c2dbdf;
+}
+.live-calculation strong {
+  color: #a3efdb;
+}
+.math {
+  color: #a1e9d8;
+}
+.liquid-lab,
+.lake-lab,
+.final-choice {
+  background: #172e3a;
+  border-color: #355563;
+}
+.saved {
+  color: #ade5ca;
+  background: #234234;
+}
+.error,
+.storage-warning {
+  color: #f1c39a;
+  background: #44342b;
+}
+.post-sim {
+  background: #20313c;
+  color: #c5bda3;
+}
+.post-sim strong {
+  color: #e2ded0;
+}
+.reading-panel,
+.math-panel,
+.practice-panel {
+  background: #152231;
+  border-color: #314657;
+}
+.lesson-stages {
+  border-color: #34495b;
+}
+.lesson-stages > button {
+  color: #a1b6c9;
+}
+.lesson-stages > button[aria-selected="true"] {
+  color: #9ce6d3;
+  border-color: #79d7c0;
+}
+.lesson-stages > button > span {
+  border-color: #465e70;
+}
+.lesson-stages > button[aria-selected="true"] > span {
+  background: #295a50;
+  color: #c4f6e6;
+  border-color: #559580;
+}
+.explanation-levels {
+  border-color: #30495b;
+}
+.explanation-levels > button {
+  background: #223649;
+  color: #bdd0e0;
+}
+.explanation-levels > button[aria-pressed="true"] {
+  background: #26493f;
+  color: #a9edcf;
+}
+.micro-badge {
+  border-color: #3c625b;
+  color: #9fdbca;
+}
+.why-button {
+  background: #3a3430;
+  border-color: #73604f;
+  color: #efc496;
+}
+.why-explanation {
+  background: #202f3b;
+  border-color: #9b9272;
+  color: #c1d0d9;
+}
+.disclosure {
+  background: #192d3c;
+  border-color: #3c5263;
+}
+.disclosure[open] > summary {
+  border-color: #344b5c;
+}
+.disclosure > summary {
+  color: #cfdfeb;
+}
+.takeaway {
+  background: #203b3a;
+}
+.takeaway > span {
+  color: #94d0bd;
+}
+.takeaway p {
+  color: #d7eee4;
+}
+.step-index {
+  background: #274438;
+  color: #a9dfc2;
+}
+.math-step,
+.stage-navigation {
+  border-color: #31495a;
+}
+.glossary-overlay {
+  background: #030910bb;
+}
+.glossary-panel {
+  background: #142130;
+  box-shadow: -12px 0 60px #00000066;
+}
+.glossary-panel > header {
+  border-color: #334b5d;
+}
+.simple-definition,
+.concept-example {
+  background: #203c3c;
+  border-color: #3e625e;
+}
+.related-concepts > button {
+  background: #213746;
+  border-color: #3b5667;
+  color: #c5e1e7;
+}
+.related-concepts > button:hover {
+  background: #2c4a55;
+}
+.map-group,
+.map-cross-links {
+  background: #172c39;
+  border-color: #34505f;
+}
+.map-index,
+.map-nodes > button {
+  background: #23443f;
+  border-color: #477a6a;
+  color: #bce9d6;
+}
+.map-nodes > button:hover {
+  background: #345e4e;
+}
+.completed-badge {
+  background: #2a493b;
+  color: #b3e4c8;
+}
+.skip-link {
+  background: #1f3d4b;
+  color: #e7f5ff;
+}
+.lesson-intro h1,
+.dictionary > h1,
+.concept-map > h1,
+.sources-page > h1,
+.lesson-card h3,
+.concept-card h3,
+.map-group h2,
+.source-cards h3,
+.glossary-body h2,
+.glossary-body > h3,
+.simple-definition p,
+.concept-example strong,
+.math-step h3,
+.quiz h3 {
+  color: #e1edf7;
+}
+.reading-prose > p {
+  font-size: 16px;
+  color: #c3d1df;
+}
+.intro-text {
+  font-size: 15px;
+  color: #b2c3d4;
+}
+.math-step p,
+.disclosure > div,
+.glossary-body > p {
+  font-size: 14px;
+  color: #bbcedd;
+}
+.quiz-options > button {
+  font-size: 13px;
+}
+.feedback {
+  font-size: 13px;
+}
+.model-note,
+.muted,
+.chart-mobile-hint {
+  color: #a4b9ca;
+}
+.solid-particle {
+  animation-name: wobble;
+}
+.drag-point {
+  touch-action: none;
+  cursor: grab;
+}
+.liquid-particle {
+  animation-name: drift;
+  animation-timing-function: ease-in-out;
+}
+.still .molecule {
+  animation: none;
+}
+@keyframes drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(var(--drift-x), var(--drift-y));
+  }
+}
+@media (max-width: 620px) {
+  .reading-prose > p {
+    font-size: 15px;
+  }
+  .intro-text {
+    font-size: 14px;
+  }
+  .quiz h3 {
+    font-size: 14px;
+  }
+  .quiz-options > button,
+  .feedback {
+    font-size: 12px;
+  }
+  .math-step p,
+  .disclosure > div,
+  .glossary-body > p {
+    font-size: 13px;
+  }
+  .explanation-levels > button {
+    font-size: 10px;
+  }
+  .field-label,
+  .range-control > span:first-child {
+    font-size: 11px;
+  }
+}

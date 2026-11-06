@@ -1,86 +1,1763 @@
-import { useContext, useEffect, useState } from 'react';
-import { Beaker, RotateCcw, Play, Pause, ArrowRight, Eye, ZoomIn, Lightbulb } from 'lucide-react';
-import { calibrate, celsiusToKelvin, equilibrium, fmt, instrumentSignals, isotropicBeta, linearExpansion, materials, thermometer, volumeExpansion, waterState } from '../lib/physics';
-import type { Material } from '../lib/physics';
-import { Chart, Disclosure, Formula, MotionContext, Particles, Range, sample, Stat, ViewToggle } from './Shared';
-import type { View } from './Shared';
+import { Activity, useEffect, useId, useState } from "react";
+import {
+  Beaker,
+  RotateCcw,
+  Play,
+  Pause,
+  ArrowRight,
+  Eye,
+  ZoomIn,
+  Lightbulb,
+} from "lucide-react";
+import {
+  calibrate,
+  celsiusToKelvin,
+  equilibrium,
+  fmt,
+  instrumentSignals,
+  isotropicBeta,
+  linearExpansion,
+  materials,
+  thermometer,
+  volumeExpansion,
+  waterState,
+} from "../lib/physics";
+import type { Material } from "../lib/physics";
+import {
+  Chart,
+  Disclosure,
+  DecimalInput,
+  Formula,
+  Particles,
+  Range,
+  sample,
+  Stat,
+  ViewToggle,
+} from "./Shared";
+import type { View } from "./Shared";
+import { useExperimentClock as useClock } from "../lib/useExperimentClock";
 
-function useClock(max=18) {
- const [time,setTime]=useState(0),[running,setRunning]=useState(false),motion=useContext(MotionContext);
- useEffect(()=>{if(!running||!motion)return;const timer=window.setInterval(()=>setTime(t=>{if(t>=max){setRunning(false);return max;}return Math.min(max,t+.1);}),100);return ()=>clearInterval(timer);},[running,max,motion]);
- return {time,running,setRunning,reset:()=>{setTime(0);setRunning(false);}};
+function Run({ clock }: { clock: ReturnType<typeof useClock> }) {
+  return (
+    <button className="btn primary" onClick={clock.toggle}>
+      {clock.running ? <Pause size={16} /> : <Play size={16} />}
+      {clock.running
+        ? "Metti in pausa"
+        : clock.complete
+          ? "Ripeti l’esperimento"
+          : clock.time > 0
+            ? "Riprendi"
+            : "Avvia l’esperimento"}
+    </button>
+  );
 }
-function Run({clock}:{clock:ReturnType<typeof useClock>}) {return <button className="btn primary" onClick={()=>{if(clock.time>=18)clock.reset();clock.setRunning(!clock.running);}}>{clock.running?<Pause size={16}/>:<Play size={16}/>} {clock.running?'Metti in pausa':clock.time>0?'Riprendi':'Avvia l’esperimento'}</button>;}
-function Note({children}:{children:React.ReactNode}) {return <p className="model-note"><Eye size={14}/>{children}</p>;}
+function Note({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="model-note">
+      <Eye size={14} />
+      {children}
+    </p>
+  );
+}
 function EquilibriumSim() {
- const [a,setA]=useState(80),[b,setB]=useState(20),[view,setView]=useState<View>('both'),clock=useClock();const state=equilibrium(a,b,clock.time);
- const update=(setter:(v:number)=>void)=>(n:number)=>{setter(n);clock.reset();};
- return <><div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<div className="contact-scene"><div className="body hot"><span>CORPO A</span><strong>{fmt(state.a,1)}<small> °C</small></strong><div className="body-bars">{Array.from({length:8},(_,i)=><i key={i} style={{height:`${20+state.a*.65}%`}}/>)}</div></div><div className="energy-arrow">{a===b?'Equilibrio':a>b?<ArrowRight/>:<ArrowRight style={{transform:'rotate(180deg)'}}/>}<small>{Math.abs(state.a-state.b)<.2?'Equilibrio approssimato':'Energia trasferita'}</small></div><div className="body cold"><span>CORPO B</span><strong>{fmt(state.b,1)}<small> °C</small></strong><div className="body-bars">{Array.from({length:8},(_,i)=><i key={i} style={{height:`${20+state.b*.65}%`}}/>)}</div></div></div>}{view!=='macro'&&<div className="twin-particles"><Particles temperature={state.a} solid/><Particles temperature={state.b} solid/></div>}<Note>Due corpi con capacità termiche uguali; nessuna dispersione. La temperatura non è energia trasferita.</Note></div><div className="controls"><Range label="Temperatura iniziale A" value={a} onChange={update(setA)} min={0} max={100} unit="°C"/><Range label="Temperatura iniziale B" value={b} onChange={update(setB)} min={0} max={100} unit="°C"/><Run clock={clock}/><p className="muted">Tempo del modello: {fmt(clock.time,1)} s. Il contatto viene mantenuto; cambiare un valore riavvia la preparazione.</p><Stat label="Equilibrio previsto" value={`${fmt(state.mean,1)} °C`} accent/></div></div><Chart series={[{name:'Corpo A',color:'#bd6c46',points:sample(0,18,t=>equilibrium(a,b,t).a)},{name:'Corpo B',color:'#287d71',points:sample(0,18,t=>equilibrium(a,b,t).b)}]} xLabel="Tempo del modello (s)" yLabel="Temperatura (°C)" xMin={0} xMax={18} yMin={0} yMax={100} point={[clock.time,state.a]}/></>;
+  const [a, setA] = useState(80),
+    [b, setB] = useState(20),
+    [view, setView] = useState<View>("both"),
+    clock = useClock();
+  const state = equilibrium(a, b, clock.time);
+  const update = (setter: (v: number) => void) => (n: number) => {
+    setter(n);
+    clock.reset();
+  };
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment">
+          <ViewToggle value={view} onChange={setView} />
+          {view !== "micro" && (
+            <div className="contact-scene">
+              <div className={"body " + (state.a > state.b ? "hot" : "cold")}>
+                <span>CORPO A</span>
+                <strong>
+                  {fmt(state.a, 1)}
+                  <small> °C</small>
+                </strong>
+                <div className="body-bars">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <i key={i} style={{ height: `${20 + state.a * 0.65}%` }} />
+                  ))}
+                </div>
+              </div>
+              <div className="energy-arrow">
+                {Math.abs(state.a - state.b) < 0.2 ? (
+                  "Equilibrio"
+                ) : a > b ? (
+                  <ArrowRight />
+                ) : (
+                  <ArrowRight style={{ transform: "rotate(180deg)" }} />
+                )}
+                <small>
+                  {Math.abs(state.a - state.b) < 0.2
+                    ? "Equilibrio approssimato"
+                    : "Energia trasferita"}
+                </small>
+              </div>
+              <div className={"body " + (state.b > state.a ? "hot" : "cold")}>
+                <span>CORPO B</span>
+                <strong>
+                  {fmt(state.b, 1)}
+                  <small> °C</small>
+                </strong>
+                <div className="body-bars">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <i key={i} style={{ height: `${20 + state.b * 0.65}%` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {view !== "macro" && (
+            <div className="twin-particles">
+              <Particles temperature={state.a} solid />
+              <Particles temperature={state.b} solid />
+            </div>
+          )}
+          <Note>
+            Due corpi con capacità termiche uguali; nessuna dispersione. La
+            temperatura non è energia trasferita.
+          </Note>
+        </div>
+        <div className="controls">
+          <Range
+            label="Temperatura iniziale A"
+            value={a}
+            onChange={update(setA)}
+            min={0}
+            max={100}
+            unit="°C"
+          />
+          <Range
+            label="Temperatura iniziale B"
+            value={b}
+            onChange={update(setB)}
+            min={0}
+            max={100}
+            unit="°C"
+          />
+          <Run clock={clock} />
+          <p className="muted">
+            Tempo del modello: {fmt(clock.time, 1)} s. Il contatto viene
+            mantenuto; cambiare un valore riavvia la preparazione.
+          </p>
+          <Stat
+            label="Equilibrio previsto"
+            value={`${fmt(state.mean, 1)} °C`}
+            accent
+          />
+        </div>
+      </div>
+      <Chart
+        series={[
+          {
+            name: "Corpo A",
+            color: "#f0a477",
+            points: sample(0, 18, (t) => equilibrium(a, b, t).a),
+          },
+          {
+            name: "Corpo B",
+            color: "#65d7c3",
+            points: sample(0, 18, (t) => equilibrium(a, b, t).b),
+          },
+        ]}
+        xLabel="Tempo del modello (s)"
+        yLabel="Temperatura (°C)"
+        xMin={0}
+        xMax={18}
+        yMin={0}
+        yMax={100}
+        point={[clock.time, state.a]}
+      />
+    </>
+  );
 }
-export function ThermometerDrawing({temperature=35,scale=true,zoom=false,hero=false}:{temperature?:number;scale?:boolean;zoom?:boolean;hero?:boolean}) {
- const top=58,bottom=270,y=bottom-(temperature/100)*(bottom-top);
- return <svg viewBox="0 0 520 370" role="img" aria-label={`Termometro immerso nell’acqua: ${fmt(temperature,1)} gradi Celsius`} className={hero?'hero-thermometer':'thermometer-svg'}>
- <defs><linearGradient id={hero?'glass-h':'glass'}><stop stopColor="#ffffff" stopOpacity=".05"/><stop offset=".45" stopColor="#ffffff" stopOpacity=".7"/><stop offset="1" stopColor="#b5cfc4" stopOpacity=".12"/></linearGradient><linearGradient id={hero?'bath-h':'bath'} x2="0" y2="1"><stop stopColor="#62a79b" stopOpacity=".13"/><stop offset="1" stopColor="#74aea3" stopOpacity=".45"/></linearGradient></defs>
- <path d="M115 190V321Q115 337 135 337H385Q405 337 405 321V190" fill={`url(#${hero?'bath-h':'bath'})`} stroke={hero?'#a7c6b2':'#91b3a8'} strokeWidth="2"/>
- <path d="M117 219Q150 207 182 219T247 219T313 219T403 219" fill="none" stroke={hero?'#81b7a4':'#7baea1'} strokeWidth="1.5" opacity=".8"/>
- <ellipse cx="260" cy="329" rx="96" ry="7" fill="#0d4e43" opacity=".1"/>
- <rect x="238" y="30" width="44" height="275" rx="22" fill={`url(#${hero?'glass-h':'glass'})`} stroke={hero?'#d0e0ce':'#a4b7ad'} strokeWidth="1.5"/>
- <path d="M254 59V281a19 19 0 1 0 12 0V59" fill="none" stroke={hero?'#adc0ac':'#c1c9bb'} strokeWidth="12" strokeLinecap="round"/>
- <path d={`M260 ${Math.max(58,y)}V292`} stroke="#d98859" strokeWidth="9" strokeLinecap="round"/>
- <circle cx="260" cy="298" r="15" fill="#d98859"/><ellipse cx="255" cy="294" rx="4" ry="6" fill="#ffd7a8" opacity=".55"/>
- <path d="M244 65V266" stroke="white" strokeWidth="2" opacity=".5" strokeLinecap="round"/>
- {scale&&Array.from({length:21},(_,i)=><g key={i}><line x1="277" x2={i%2===0?'293':'287'} y1={bottom-i*(bottom-top)/20} y2={bottom-i*(bottom-top)/20} stroke={hero?'#b5d0ba':'#6e8a7b'}/>{i%4===0&&<text x="301" y={bottom-i*(bottom-top)/20+4} fontSize="11" fill={hero?'#c6d9c5':'#557366'}>{i*5}°</text>}</g>)}
- {!hero&&<><path d="M180 292H221" stroke="#8da698"/><text x="157" y="296" textAnchor="end" fill="#4f6d60" fontSize="12">Bulbo</text><path d="M188 111H231" stroke="#8da698"/><text x="175" y="115" textAnchor="end" fill="#4f6d60" fontSize="12">Capillare</text><text x="346" y="307" fill="#507f75" fontSize="12">Acqua</text></>}
- {zoom&&<g><circle cx="398" cy="92" r="48" fill="#fafbf5" stroke="#b6c9bd"/><rect x="388" y="55" width="20" height="73" rx="9" fill="#e8eee6" stroke="#a5b8aa"/><rect x="393" y={125-temperature*.65} width="10" height={temperature*.65} fill="#d98859"/><path d="M282 120L350 92" stroke="#98ad9d" strokeDasharray="3 4"/><text x="398" y="155" textAnchor="middle" fontSize="11" fill="#5a7365">Capillare ingrandito</text></g>}
- </svg>;
+export function ThermometerDrawing({
+  temperature = 35,
+  scale = true,
+  zoom = false,
+  hero = false,
+}: {
+  temperature?: number;
+  scale?: boolean;
+  zoom?: boolean;
+  hero?: boolean;
+}) {
+  const top = 58,
+    bottom = 270,
+    y = bottom - (temperature / 100) * (bottom - top);
+  return (
+    <svg
+      viewBox="0 0 520 370"
+      role="img"
+      aria-label={`Termometro immerso nell’acqua: ${fmt(temperature, 1)} gradi Celsius`}
+      className={hero ? "hero-thermometer" : "thermometer-svg"}
+    >
+      <defs>
+        <linearGradient id={hero ? "glass-h" : "glass"}>
+          <stop stopColor="#ffffff" stopOpacity=".05" />
+          <stop offset=".45" stopColor="#ffffff" stopOpacity=".7" />
+          <stop offset="1" stopColor="#b5cfc4" stopOpacity=".12" />
+        </linearGradient>
+        <linearGradient id={hero ? "bath-h" : "bath"} x2="0" y2="1">
+          <stop stopColor="#62a79b" stopOpacity=".13" />
+          <stop offset="1" stopColor="#74aea3" stopOpacity=".45" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M115 190V321Q115 337 135 337H385Q405 337 405 321V190"
+        fill={`url(#${hero ? "bath-h" : "bath"})`}
+        stroke={hero ? "#a7c6b2" : "#91b3a8"}
+        strokeWidth="2"
+      />
+      <path
+        d="M117 219Q150 207 182 219T247 219T313 219T403 219"
+        fill="none"
+        stroke={hero ? "#81b7a4" : "#7baea1"}
+        strokeWidth="1.5"
+        opacity=".8"
+      />
+      <ellipse cx="260" cy="329" rx="96" ry="7" fill="#0d4e43" opacity=".1" />
+      <rect
+        x="238"
+        y="30"
+        width="44"
+        height="275"
+        rx="22"
+        fill={`url(#${hero ? "glass-h" : "glass"})`}
+        stroke={hero ? "#d0e0ce" : "#a4b7ad"}
+        strokeWidth="1.5"
+      />
+      <path
+        d="M254 59V281a19 19 0 1 0 12 0V59"
+        fill="none"
+        stroke={hero ? "#adc0ac" : "#c1c9bb"}
+        strokeWidth="12"
+        strokeLinecap="round"
+      />
+      <path
+        d={`M260 ${Math.max(58, y)}V292`}
+        stroke="#d98859"
+        strokeWidth="9"
+        strokeLinecap="round"
+      />
+      <circle cx="260" cy="298" r="15" fill="#d98859" />
+      <ellipse cx="255" cy="294" rx="4" ry="6" fill="#ffd7a8" opacity=".55" />
+      <path
+        d="M244 65V266"
+        stroke="white"
+        strokeWidth="2"
+        opacity=".5"
+        strokeLinecap="round"
+      />
+      {scale &&
+        Array.from({ length: 21 }, (_, i) => (
+          <g key={i}>
+            <line
+              x1="277"
+              x2={i % 2 === 0 ? "293" : "287"}
+              y1={bottom - (i * (bottom - top)) / 20}
+              y2={bottom - (i * (bottom - top)) / 20}
+              stroke={hero ? "#b5d0ba" : "#6e8a7b"}
+            />
+            {i % 4 === 0 && (
+              <text
+                x="301"
+                y={bottom - (i * (bottom - top)) / 20 + 4}
+                fontSize="11"
+                fill={hero ? "#c6d9c5" : "#557366"}
+              >
+                {i * 5}°
+              </text>
+            )}
+          </g>
+        ))}
+      {!hero && (
+        <>
+          <path d="M180 292H221" stroke="#8da698" />
+          <text x="157" y="296" textAnchor="end" fill="#4f6d60" fontSize="12">
+            Bulbo
+          </text>
+          <path d="M188 111H231" stroke="#8da698" />
+          <text x="175" y="115" textAnchor="end" fill="#4f6d60" fontSize="12">
+            Capillare
+          </text>
+          <text x="346" y="307" fill="#507f75" fontSize="12">
+            Acqua
+          </text>
+        </>
+      )}
+      {zoom && (
+        <g>
+          <circle cx="398" cy="92" r="48" fill="#172c3c" stroke="#b6c9bd" />
+          <rect
+            x="388"
+            y="55"
+            width="20"
+            height="73"
+            rx="9"
+            fill="#263e4f"
+            stroke="#a5b8aa"
+          />
+          <rect
+            x="393"
+            y={125 - temperature * 0.65}
+            width="10"
+            height={temperature * 0.65}
+            fill="#d98859"
+          />
+          <path d="M282 120L350 92" stroke="#98ad9d" strokeDasharray="3 4" />
+          <text
+            x="398"
+            y="155"
+            textAnchor="middle"
+            fontSize="11"
+            fill="#5a7365"
+          >
+            Capillare ingrandito
+          </text>
+        </g>
+      )}
+    </svg>
+  );
 }
 function ThermometerSim() {
- const [bath,setBath]=useState(70),[scale,setScale]=useState(true),[zoom,setZoom]=useState(false),[view,setView]=useState<View>('macro'),clock=useClock();const t=thermometer(20,bath,clock.time);
- return <><div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<ThermometerDrawing temperature={t} scale={scale} zoom={zoom}/>} {view!=='macro'&&<Particles temperature={t}/>}<Note>Il disegno amplifica la variazione del livello. Il liquido si dilata rispetto al vetro; la dinamica è idealizzata.</Note></div><div className="controls"><Range label="Temperatura dell’acqua" value={bath} onChange={v=>{setBath(v);clock.reset();}} min={0} max={100} unit="°C"/><div className="check-row"><label><input type="checkbox" checked={scale} onChange={e=>setScale(e.target.checked)}/>Scala graduata</label><label><input type="checkbox" checked={zoom} onChange={e=>setZoom(e.target.checked)}/><ZoomIn size={16}/>Ingrandisci il capillare</label></div><Run clock={clock}/><div className="stats"><Stat label="Indica adesso" value={`${fmt(t,1)} °C`} accent/><Stat label="Acqua" value={`${fmt(bath,1)} °C`}/></div><p className="muted">Ogni nuova immersione parte da 20 °C. Il bagno mantiene la propria temperatura; il bulbo deve ancora raggiungerla.</p><a href="#/lezione/celsius" className="text-link">Prova a calibrare la scala <ArrowRight size={15}/></a></div></div><Chart series={[{name:'Lettura del bulbo',color:'#bd6c46',points:sample(0,18,x=>thermometer(20,bath,x))},{name:'Bagno',color:'#287d71',points:[[0,bath],[18,bath]],dashed:true}]} xLabel="Tempo del modello (s)" yLabel="Temperatura (°C)" xMin={0} xMax={18} yMin={0} yMax={100} point={[clock.time,t]}/></>;
+  const [bath, setBath] = useState(70),
+    [scale, setScale] = useState(true),
+    [zoom, setZoom] = useState(false),
+    [view, setView] = useState<View>("macro"),
+    clock = useClock();
+  const t = thermometer(20, bath, clock.time);
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment">
+          <ViewToggle value={view} onChange={setView} />
+          {view !== "micro" && (
+            <ThermometerDrawing temperature={t} scale={scale} zoom={zoom} />
+          )}{" "}
+          {view !== "macro" && <Particles temperature={t} />}
+          <Note>
+            Il disegno amplifica la variazione del livello. Il liquido si dilata
+            rispetto al vetro; la dinamica è idealizzata.
+          </Note>
+        </div>
+        <div className="controls">
+          <Range
+            label="Temperatura dell’acqua"
+            value={bath}
+            onChange={(v) => {
+              setBath(v);
+              clock.reset();
+            }}
+            min={0}
+            max={100}
+            unit="°C"
+          />
+          <div className="check-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={scale}
+                onChange={(e) => setScale(e.target.checked)}
+              />
+              Scala graduata
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={zoom}
+                onChange={(e) => setZoom(e.target.checked)}
+              />
+              <ZoomIn size={16} />
+              Ingrandisci il capillare
+            </label>
+          </div>
+          <Run clock={clock} />
+          <div className="stats">
+            <Stat label="Indica adesso" value={`${fmt(t, 1)} °C`} accent />
+            <Stat label="Acqua" value={`${fmt(bath, 1)} °C`} />
+          </div>
+          <p className="muted">
+            Ogni nuova immersione parte da 20 °C. Il bagno mantiene la propria
+            temperatura; il bulbo deve ancora raggiungerla.
+          </p>
+          <a href="#/lezione/celsius" className="text-link">
+            Prova a calibrare la scala <ArrowRight size={15} />
+          </a>
+        </div>
+      </div>
+      <Chart
+        series={[
+          {
+            name: "Lettura del bulbo",
+            color: "#f0a477",
+            points: sample(0, 18, (x) => thermometer(20, bath, x)),
+          },
+          {
+            name: "Bagno",
+            color: "#65d7c3",
+            points: [
+              [0, bath],
+              [18, bath],
+            ],
+            dashed: true,
+          },
+        ]}
+        xLabel="Tempo del modello (s)"
+        yLabel="Temperatura (°C)"
+        xMin={0}
+        xMax={18}
+        yMin={0}
+        yMax={100}
+        point={[clock.time, t]}
+      />
+    </>
+  );
 }
 function CalibrationSim() {
- const [low,setLow]=useState(20),[high,setHigh]=useState(120),[level,setLevel]=useState(45),[divisions,setDivisions]=useState(100),[marked,setMarked]=useState(false);const t=calibrate(level,low,high);
- const sy=(h:number)=>300-h*1.5;
- return <div className="sim-grid"><div className="experiment"><p className="scene-label">COSTRUISCI IL TUO TERMOMETRO IDEALE</p><svg viewBox="0 0 520 365" role="img" aria-label={`Scala calibrata: livello ${level} millimetri, temperatura ${fmt(t,1)} gradi Celsius`}><rect x="177" y="30" width="43" height="280" rx="21" fill="#e9eee4" stroke="#b4c6b6"/><path d={`M198 ${sy(level)}V310`} stroke="#c87b52" strokeWidth="11" strokeLinecap="round"/>{marked&&Array.from({length:divisions+1},(_,i)=>{const y=sy(low+(high-low)*i/divisions);return <line key={i} x1="226" x2={i%10===0?247:237} y1={y} y2={y} stroke="#8ca18f"/>})}<line x1="158" x2="315" y1={sy(low)} y2={sy(low)} stroke="#3e8b7b" strokeDasharray="4 3"/><line x1="158" x2="315" y1={sy(high)} y2={sy(high)} stroke="#bd714d" strokeDasharray="4 3"/><text x="321" y={sy(low)+4} fill="#386e60" fontSize="13">0 °C · {low} mm</text><text x="321" y={sy(high)+4} fill="#a66643" fontSize="13">100 °C · {high} mm</text><text x="260" y="345" textAnchor="middle" fill="#5b7164" fontSize="12">Riferimenti storici ideali · pressione e purezza specificate</text></svg><Note>Due riferimenti determinano una retta solo se assumiamo una risposta lineare.</Note></div><div className="controls"><Range label="Livello al riferimento 0 °C" value={low} onChange={v=>{setLow(v);setLevel(l=>Math.max(v,l));}} min={0} max={40} unit="mm"/><Range label="Livello al riferimento 100 °C" value={high} onChange={v=>{setHigh(v);setLevel(l=>Math.min(v,l));}} min={80} max={160} unit="mm"/><Range label="Livello da leggere" value={level} onChange={setLevel} min={low} max={high} unit="mm"/><label className="field-label">Divisioni visibili<select value={divisions} onChange={e=>setDivisions(+e.target.value)}><option value={10}>10 parti · 10 °C ciascuna</option><option value={50}>50 parti · 2 °C ciascuna</option><option value={100}>100 parti · 1 °C ciascuna</option></select></label><button className="btn primary" onClick={()=>setMarked(v=>!v)}>{marked?'Nascondi le divisioni':'Dividi l’intervallo'}</button><Stat label="Lettura ricavata" value={`${fmt(t,1)} °C`} accent/><p className="calculation">100 × ({level} − {low}) / ({high} − {low}) = {fmt(t,1)}</p></div></div>;
+  const [low, setLow] = useState(20),
+    [high, setHigh] = useState(120),
+    [level, setLevel] = useState(45),
+    [divisions, setDivisions] = useState(100),
+    [marked, setMarked] = useState(false);
+  const t = calibrate(level, low, high);
+  const sy = (h: number) => 300 - h * 1.5;
+  return (
+    <div className="sim-grid">
+      <div className="experiment">
+        <p className="scene-label">COSTRUISCI IL TUO TERMOMETRO IDEALE</p>
+        <svg
+          viewBox="0 0 520 365"
+          role="img"
+          aria-label={`Scala calibrata: livello ${level} millimetri, temperatura ${fmt(t, 1)} gradi Celsius`}
+        >
+          <rect
+            x="177"
+            y="30"
+            width="43"
+            height="280"
+            rx="21"
+            fill="#203947"
+            stroke="#b4c6b6"
+          />
+          <path
+            d={`M198 ${sy(level)}V310`}
+            stroke="#c87b52"
+            strokeWidth="11"
+            strokeLinecap="round"
+          />
+          {marked &&
+            Array.from({ length: divisions + 1 }, (_, i) => {
+              const y = sy(low + ((high - low) * i) / divisions);
+              return (
+                <line
+                  key={i}
+                  x1="226"
+                  x2={i % 10 === 0 ? 247 : 237}
+                  y1={y}
+                  y2={y}
+                  stroke="#8ca18f"
+                />
+              );
+            })}
+          <line
+            x1="158"
+            x2="315"
+            y1={sy(low)}
+            y2={sy(low)}
+            stroke="#3e8b7b"
+            strokeDasharray="4 3"
+          />
+          <line
+            x1="158"
+            x2="315"
+            y1={sy(high)}
+            y2={sy(high)}
+            stroke="#bd714d"
+            strokeDasharray="4 3"
+          />
+          <text x="321" y={sy(low) + 4} fill="#386e60" fontSize="13">
+            0 °C · {low} mm
+          </text>
+          <text x="321" y={sy(high) + 4} fill="#a66643" fontSize="13">
+            100 °C · {high} mm
+          </text>
+          <text
+            x="260"
+            y="345"
+            textAnchor="middle"
+            fill="#5b7164"
+            fontSize="12"
+          >
+            Riferimenti storici ideali · pressione e purezza specificate
+          </text>
+        </svg>
+        <Note>
+          Due riferimenti determinano una retta solo se assumiamo una risposta
+          lineare.
+        </Note>
+      </div>
+      <div className="controls">
+        <Range
+          label="Livello al riferimento 0 °C"
+          value={low}
+          onChange={(v) => {
+            setLow(v);
+            setLevel((l) => Math.max(v, l));
+          }}
+          min={0}
+          max={40}
+          unit="mm"
+        />
+        <Range
+          label="Livello al riferimento 100 °C"
+          value={high}
+          onChange={(v) => {
+            setHigh(v);
+            setLevel((l) => Math.min(v, l));
+          }}
+          min={80}
+          max={160}
+          unit="mm"
+        />
+        <Range
+          label="Livello da leggere"
+          value={level}
+          onChange={setLevel}
+          min={low}
+          max={high}
+          unit="mm"
+        />
+        <label className="field-label">
+          Divisioni visibili
+          <select
+            value={divisions}
+            onChange={(e) => setDivisions(+e.target.value)}
+          >
+            <option value={10}>10 parti · 10 °C ciascuna</option>
+            <option value={50}>50 parti · 2 °C ciascuna</option>
+            <option value={100}>100 parti · 1 °C ciascuna</option>
+          </select>
+        </label>
+        <button className="btn primary" onClick={() => setMarked((v) => !v)}>
+          {marked ? "Nascondi le divisioni" : "Dividi l’intervallo"}
+        </button>
+        <Stat label="Lettura ricavata" value={`${fmt(t, 1)} °C`} accent />
+        <p className="calculation">
+          100 × ({level} − {low}) / ({high} − {low}) = {fmt(t, 1)}
+        </p>
+      </div>
+    </div>
+  );
 }
 function OperationalSim() {
- const [t,setT]=useState(35),[calibrated,setCalibrated]=useState(false);const signals=instrumentSignals(t);
- return <><div className="instrument-row">{[{name:'Liquido',value:signals.height,unit:'mm',reading:(signals.height-20)/.8,symbol:'h',desc:'Altezza nel capillare',pct:t},{name:'Filo metallico',value:signals.resistance,unit:'Ω',reading:(signals.resistance/100-1)/.00385,symbol:'R',desc:'Resistenza elettrica',pct:t},{name:'Gas a volume fisso',value:signals.pressure,unit:'kPa',reading:273.15*(signals.pressure/100-1),symbol:'p',desc:'Pressione del gas',pct:t}].map((s,i)=><div className="instrument" key={s.name}><span className="instrument-icon">{s.symbol}</span><h3>{s.name}</h3><p>{s.desc}</p><div className="signal-meter"><i style={{height:`${15+s.pct*.75}%`,background:['#c27a50','#478a75','#a99b62'][i]}}/></div><strong>{fmt(s.value)} <small>{s.unit}</small></strong>{calibrated?<div className="converted"><CheckIcon/> {fmt(s.reading,1)} °C</div>:<span className="muted">Segnale da interpretare</span>}</div>)}</div><div className="sim-bottom"><Range label="Temperatura comune del bagno" value={t} onChange={setT} min={0} max={100} unit="°C"/><button className="btn primary" onClick={()=>setCalibrated(v=>!v)}>{calibrated?'Mostra solo i segnali':'Applica le calibrazioni'}</button></div><Note>h = 20 + 0,8t (mm); R = 100(1 + 0,00385t) (Ω); p = 100(t + 273,15)/273,15 (kPa). t è il valore numerico Celsius. Risposte ideali, non accuratezze promesse.</Note><Chart series={[{name:'Livello h',color:'#c27a50',points:sample(0,100,x=>instrumentSignals(x).height)}]} xLabel="Temperatura Celsius (°C)" yLabel="Livello h (mm)" xMin={0} xMax={100} yMin={20} yMax={100} point={[t,signals.height]}/></>;
+  const [t, setT] = useState(35),
+    [calibrated, setCalibrated] = useState(false);
+  const signals = instrumentSignals(t);
+  return (
+    <>
+      <div className="instrument-row">
+        {[
+          {
+            name: "Liquido",
+            value: signals.height,
+            unit: "mm",
+            reading: (signals.height - 20) / 0.8,
+            symbol: "h",
+            desc: "Altezza nel capillare",
+            pct: t,
+          },
+          {
+            name: "Filo metallico",
+            value: signals.resistance,
+            unit: "Ω",
+            reading: (signals.resistance / 100 - 1) / 0.00385,
+            symbol: "R",
+            desc: "Resistenza elettrica",
+            pct: t,
+          },
+          {
+            name: "Gas a volume fisso",
+            value: signals.pressure,
+            unit: "kPa",
+            reading: 273.15 * (signals.pressure / 100 - 1),
+            symbol: "p",
+            desc: "Pressione del gas",
+            pct: t,
+          },
+        ].map((s, i) => (
+          <div className="instrument" key={s.name}>
+            <span className="instrument-icon">{s.symbol}</span>
+            <h3>{s.name}</h3>
+            <p>{s.desc}</p>
+            <div className="signal-meter">
+              <i
+                style={{
+                  height: `${15 + s.pct * 0.75}%`,
+                  background: ["#f0a477", "#65d7c3", "#ddbf7d"][i],
+                }}
+              />
+            </div>
+            <strong>
+              {fmt(s.value)} <small>{s.unit}</small>
+            </strong>
+            {calibrated ? (
+              <div className="converted">
+                <CheckIcon /> {fmt(s.reading, 1)} °C
+              </div>
+            ) : (
+              <span className="muted">Segnale da interpretare</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="sim-bottom">
+        <Range
+          label="Temperatura comune del bagno"
+          value={t}
+          onChange={setT}
+          min={0}
+          max={100}
+          unit="°C"
+        />
+        <button
+          className="btn primary"
+          onClick={() => setCalibrated((v) => !v)}
+        >
+          {calibrated ? "Mostra solo i segnali" : "Applica le calibrazioni"}
+        </button>
+      </div>
+      <Note>
+        h = 20 + 0,8t (mm); R = 100(1 + 0,00385t) (Ω); p = 100(t +
+        273,15)/273,15 (kPa). t è il valore numerico Celsius. Risposte ideali,
+        non accuratezze promesse.
+      </Note>
+      <Chart
+        series={[
+          {
+            name: "Livello h",
+            color: "#f0a477",
+            points: sample(0, 100, (x) => instrumentSignals(x).height),
+          },
+        ]}
+        xLabel="Temperatura Celsius (°C)"
+        yLabel="Livello h (mm)"
+        xMin={0}
+        xMax={100}
+        yMin={20}
+        yMax={100}
+        point={[t, signals.height]}
+      />
+    </>
+  );
 }
-function CheckIcon(){return <span aria-hidden="true">✓</span>;}
+function CheckIcon() {
+  return <span aria-hidden="true">✓</span>;
+}
 function KelvinSim() {
- const [t,setT]=useState(20),[view,setView]=useState<View>('macro');const k=celsiusToKelvin(t),y=300-(t+273.15)/423.15*250;
- return <div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<svg viewBox="0 0 520 375" role="img" aria-label={`${fmt(t)} gradi Celsius equivalgono a ${fmt(k)} kelvin`}><text x="140" y="25" textAnchor="middle" fill="#37695a" fontSize="16">Celsius</text><text x="380" y="25" textAnchor="middle" fill="#aa6c43" fontSize="16">Kelvin</text><rect x="129" y="48" width="22" height="255" rx="11" fill="#d5e5d8"/><rect x="369" y="48" width="22" height="255" rx="11" fill="#f1dfc6"/>{[-273.15,-200,-100,0,100,150].map(v=>{const py=300-(v+273.15)/423.15*250;return <g key={v}><path d={`M120 ${py}H158 M360 ${py}H399`} stroke="#93a793"/><text x="111" y={py+4} textAnchor="end" fontSize="11" fill="#426b59">{fmt(v,v===-273.15?2:0)} °C</text><text x="409" y={py+4} fontSize="11" fill="#93633e">{fmt(v+273.15,v===-273.15?0:2)} K</text></g>})}<path d={`M140 ${y}H380`} stroke="#be7145" strokeWidth="2" strokeDasharray="4 4"/><circle cx="140" cy={y} r="7" fill="#287d71"/><circle cx="380" cy={y} r="7" fill="#bd7146"/><text x="260" y="332" textAnchor="middle" fontSize="12" fill="#4f6d5d">Stessa altezza = stesso stato termico</text><text x="260" y="355" textAnchor="middle" fontSize="11" fill="#737d6d">Unità della stessa ampiezza · origini differenti</text></svg>}{view!=='macro'&&<><Particles temperature={t}/><Note>Le particelle sono un modello classico illustrativo. Non descrivono lo zero assoluto né l’energia di punto zero.</Note></>}</div><div className="controls"><Range label="Sposta lo stato termico" value={t} onChange={setT} min={-273.15} max={150} step={.05} unit="°C" digits={2}/><div className="stats"><Stat label="Scala Celsius" value={`${fmt(t)} °C`}/><Stat label="Scala assoluta" value={`${fmt(k)} K`} accent/></div><div className="insight"><Lightbulb size={20}/><p>Non cambia il corpo. Cambia il numero con cui descrivi lo stesso stato.</p></div><button className="btn secondary" onClick={()=>setT(-273.15)}>Indica lo zero assoluto</button><a className="text-link" href="#/lezione/conversioni">Ricaviamo la conversione <ArrowRight size={15}/></a></div></div>;
+  const [t, setT] = useState(20),
+    [view, setView] = useState<View>("macro");
+  const k = celsiusToKelvin(t),
+    y = 300 - ((t + 273.15) / 423.15) * 250;
+  return (
+    <div className="sim-grid">
+      <div className="experiment">
+        <ViewToggle value={view} onChange={setView} />
+        {view !== "micro" && (
+          <svg
+            viewBox="0 0 520 375"
+            role="img"
+            aria-label={`${fmt(t)} gradi Celsius equivalgono a ${fmt(k)} kelvin`}
+          >
+            <text
+              x="140"
+              y="25"
+              textAnchor="middle"
+              fill="#37695a"
+              fontSize="16"
+            >
+              Celsius
+            </text>
+            <text
+              x="380"
+              y="25"
+              textAnchor="middle"
+              fill="#aa6c43"
+              fontSize="16"
+            >
+              Kelvin
+            </text>
+            <rect
+              x="129"
+              y="48"
+              width="22"
+              height="255"
+              rx="11"
+              fill="#19413e"
+            />
+            <rect
+              x="369"
+              y="48"
+              width="22"
+              height="255"
+              rx="11"
+              fill="#49332a"
+            />
+            {[-273.15, -200, -100, 0, 100, 150].map((v) => {
+              const py = 300 - ((v + 273.15) / 423.15) * 250;
+              return (
+                <g key={v}>
+                  <path d={`M120 ${py}H158 M360 ${py}H399`} stroke="#93a793" />
+                  <text
+                    x="111"
+                    y={py + 4}
+                    textAnchor="end"
+                    fontSize="11"
+                    fill="#426b59"
+                  >
+                    {fmt(v, v === -273.15 ? 2 : 0)} °C
+                  </text>
+                  <text x="409" y={py + 4} fontSize="11" fill="#93633e">
+                    {fmt(v + 273.15, v === -273.15 ? 0 : 2)} K
+                  </text>
+                </g>
+              );
+            })}
+            <path
+              d={`M140 ${y}H380`}
+              stroke="#be7145"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+            <circle cx="140" cy={y} r="7" fill="#65d7c3" />
+            <circle cx="380" cy={y} r="7" fill="#bd7146" />
+            <text
+              x="260"
+              y="332"
+              textAnchor="middle"
+              fontSize="12"
+              fill="#4f6d5d"
+            >
+              Stessa altezza = stesso stato termico
+            </text>
+            <text
+              x="260"
+              y="355"
+              textAnchor="middle"
+              fontSize="11"
+              fill="#737d6d"
+            >
+              Unità della stessa ampiezza · origini differenti
+            </text>
+          </svg>
+        )}
+        {view !== "macro" && (
+          <>
+            <Particles temperature={t} />
+            <Note>
+              Le particelle sono un modello classico illustrativo. Non
+              descrivono lo zero assoluto né l’energia di punto zero.
+            </Note>
+          </>
+        )}
+      </div>
+      <div className="controls">
+        <Range
+          label="Sposta lo stato termico"
+          value={t}
+          onChange={setT}
+          min={-273.15}
+          max={150}
+          step={0.05}
+          unit="°C"
+          digits={2}
+        />
+        <div className="stats">
+          <Stat label="Scala Celsius" value={`${fmt(t)} °C`} />
+          <Stat label="Scala assoluta" value={`${fmt(k)} K`} accent />
+        </div>
+        <div className="insight">
+          <Lightbulb size={20} />
+          <p>
+            Non cambia il corpo. Cambia il numero con cui descrivi lo stesso
+            stato.
+          </p>
+        </div>
+        <button className="btn secondary" onClick={() => setT(-273.15)}>
+          Indica lo zero assoluto
+        </button>
+        <a className="text-link" href="#/lezione/conversioni">
+          Ricaviamo la conversione <ArrowRight size={15} />
+        </a>
+      </div>
+    </div>
+  );
 }
 function ConversionSim() {
- const [t,setT]=useState(20),[a,setA]=useState(20),[b,setB]=useState(30),[slope,setSlope]=useState(true),[intercept,setIntercept]=useState(true),[translation,setTranslation]=useState(false),[error,setError]=useState('');
- const changeInput=(raw:string,kelvin=false)=>{if(raw.trim()===''){setError('Inserisci un valore numerico.');return;}const n=Number(raw.replace(',','.')),c=kelvin?n-273.15:n;if(!Number.isFinite(c)||c<-273.15||c>150){setError('Esplora temperature da −273,15 a 150 °C (da 0 a 423,15 K).');return;}setError('');setT(c);};
- return <><div className="sim-grid"><div className="experiment conversion-plot"><Chart series={[{name:'T/K = t/°C + 273,15',color:'#287d71',points:[[-273.15,0],[150,423.15]]}]} xLabel="Temperatura Celsius t (°C)" yLabel="Temperatura termodinamica T (K)" xMin={-273.15} xMax={150} yMin={0} yMax={423.15} point={[t,celsiusToKelvin(t)]} onPick={n=>{setT(Math.round(n*100)/100);setError('');}} markers={intercept?[{x:0,label:'Origine Celsius'}]:[]}/><Note>Tocca il grafico o usa il cursore per spostare il punto. Le coordinate sono lo stesso stato su due scale.</Note><div className="plot-annotations">{slope&&<span>m = Δy/Δx = 1</span>}{intercept&&<span>q = 273,15</span>}</div></div><div className="controls"><Range label="Punto sulla retta" value={t} onChange={n=>{setT(n);setError('');}} min={-273.15} max={150} step={.05} unit="°C" digits={2}/><div className="numeric-inputs"><label>Celsius (°C)<input key={`c${t}`} type="text" inputMode="decimal" defaultValue={fmt(t)} onBlur={e=>changeInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}}/></label><label>Kelvin (K)<input key={`k${t}`} type="text" inputMode="decimal" defaultValue={fmt(celsiusToKelvin(t))} onBlur={e=>changeInput(e.target.value,true)} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}}/></label></div>{error&&<p role="alert" className="error">{error}</p>}<p className="muted">Scrivi un valore e premi Invio. Il calcolo usa i valori, non la posizione grafica.</p><label className="check"><input type="checkbox" checked={slope} onChange={e=>setSlope(e.target.checked)}/>Mostra la pendenza</label><label className="check"><input type="checkbox" checked={intercept} onChange={e=>setIntercept(e.target.checked)}/>Mostra l’intercetta</label><button className="btn secondary" onClick={()=>setTranslation(v=>!v)}>La geometria della traslazione</button></div></div>{translation&&<div className="translation"><strong>Due righelli spostati, tacche uguali</strong><div><span>0 °C</span><i/><span>20 °C</span><i/><span>40 °C</span></div><div><span>273,15 K</span><i/><span>293,15 K</span><i/><span>313,15 K</span></div><p>+273,15 sposta ogni etichetta dello stesso numero. Gli intervalli restano uguali.</p></div>}<div className="interval-lab"><div><h3>Una temperatura ≠ un intervallo</h3><Range label="Temperatura iniziale" value={a} onChange={setA} min={-20} max={100} unit="°C"/><Range label="Temperatura finale" value={b} onChange={setB} min={-20} max={100} unit="°C"/></div><div><Stat label="Differenza in Celsius" value={`${b} − ${a} = ${b-a} °C`}/><Stat label="Differenza in kelvin" value={`${fmt(celsiusToKelvin(b))} − ${fmt(celsiusToKelvin(a))} = ${b-a} K`} accent/><p className="muted">Le due aggiunte di 273,15 si cancellano nella sottrazione.</p></div></div></>;
+  const [t, setT] = useState(20),
+    [a, setA] = useState(20),
+    [b, setB] = useState(30),
+    [slope, setSlope] = useState(true),
+    [intercept, setIntercept] = useState(true),
+    [translation, setTranslation] = useState(false),
+    [error, setError] = useState("");
+  const errorId = useId();
+  const changeInput = (raw: string, kelvin = false) => {
+    if (raw.trim() === "") {
+      setError("Inserisci un valore numerico.");
+      return false;
+    }
+    const n = Number(raw.trim().replace("−", "-").replace(",", ".")),
+      c = kelvin ? n - 273.15 : n;
+    if (!Number.isFinite(c) || c < -273.15 || c > 150) {
+      setError(
+        "Esplora temperature da −273,15 a 150 °C (da 0 a 423,15 K). Il grafico conserva l’ultimo valore valido.",
+      );
+      return false;
+    }
+    setError("");
+    setT(Math.round(c * 100) / 100);
+    return true;
+  };
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment conversion-plot">
+          <Chart
+            series={[
+              {
+                name: "T/K = t/°C + 273,15",
+                color: "#65d7c3",
+                points: [
+                  [-273.15, 0],
+                  [150, 423.15],
+                ],
+              },
+            ]}
+            xLabel="Temperatura Celsius t (°C)"
+            yLabel="Temperatura termodinamica T (K)"
+            xMin={-273.15}
+            xMax={150}
+            yMin={0}
+            yMax={423.15}
+            point={[t, celsiusToKelvin(t)]}
+            onPick={(n) => {
+              setT(Math.round(n * 100) / 100);
+              setError("");
+            }}
+            markers={intercept ? [{ x: 0, label: "Origine Celsius" }] : []}
+          />
+          <Note>
+            Trascina sul grafico o usa il cursore per spostare il punto. Le
+            coordinate sono lo stesso stato su due scale.
+          </Note>
+          <div className="plot-annotations">
+            {slope && <span>m = Δy/Δx = 1</span>}
+            {intercept && <span>q = 273,15</span>}
+          </div>
+        </div>
+        <div className="controls">
+          <Range
+            label="Punto sulla retta"
+            value={t}
+            onChange={(n) => {
+              setT(n);
+              setError("");
+            }}
+            min={-273.15}
+            max={150}
+            step={0.01}
+            unit="°C"
+            digits={2}
+          />
+          <div className="numeric-inputs">
+            <DecimalInput
+              label="Celsius (°C)"
+              value={t}
+              onCommit={(raw) => changeInput(raw)}
+              errorId={errorId}
+              invalid={!!error}
+            />
+            <DecimalInput
+              label="Kelvin (K)"
+              value={celsiusToKelvin(t)}
+              onCommit={(raw) => changeInput(raw, true)}
+              errorId={errorId}
+              invalid={!!error}
+            />
+          </div>
+          {error && (
+            <p role="alert" id={errorId} className="error">
+              {error}
+            </p>
+          )}
+          <p className="muted">
+            Scrivi un valore e premi Invio. Il calcolo usa i valori, non la
+            posizione grafica.
+          </p>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={slope}
+              onChange={(e) => setSlope(e.target.checked)}
+            />
+            Mostra la pendenza
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={intercept}
+              onChange={(e) => setIntercept(e.target.checked)}
+            />
+            Mostra l’intercetta
+          </label>
+          <button
+            className="btn secondary"
+            onClick={() => setTranslation((v) => !v)}
+          >
+            La geometria della traslazione
+          </button>
+        </div>
+      </div>
+      {translation && (
+        <div className="translation">
+          <strong>Due righelli spostati, tacche uguali</strong>
+          <div>
+            <span>0 °C</span>
+            <i />
+            <span>20 °C</span>
+            <i />
+            <span>40 °C</span>
+          </div>
+          <div>
+            <span>273,15 K</span>
+            <i />
+            <span>293,15 K</span>
+            <i />
+            <span>313,15 K</span>
+          </div>
+          <p>
+            +273,15 sposta ogni etichetta dello stesso numero. Gli intervalli
+            restano uguali.
+          </p>
+        </div>
+      )}
+      <div className="interval-lab">
+        <div>
+          <h3>Una temperatura ≠ un intervallo</h3>
+          <Range
+            label="Temperatura iniziale"
+            value={a}
+            onChange={setA}
+            min={-20}
+            max={100}
+            unit="°C"
+          />
+          <Range
+            label="Temperatura finale"
+            value={b}
+            onChange={setB}
+            min={-20}
+            max={100}
+            unit="°C"
+          />
+        </div>
+        <div>
+          <Stat
+            label="Differenza in Celsius"
+            value={`${b} − ${a} = ${b - a} °C`}
+          />
+          <Stat
+            label="Differenza in kelvin"
+            value={`${fmt(celsiusToKelvin(b))} − ${fmt(celsiusToKelvin(a))} = ${b - a} K`}
+            accent
+          />
+          <p className="muted">
+            Le due aggiunte di 273,15 si cancellano nella sottrazione.
+          </p>
+        </div>
+      </div>
+    </>
+  );
 }
-function MaterialSelect({value,onChange}:{value:Material;onChange:(v:Material)=>void}) {return <label className="field-label">Materiale<select aria-label="Materiale" value={value} onChange={e=>onChange(e.target.value as Material)}>{Object.entries(materials).map(([id,m])=><option key={id} value={id}>{m.name} · α ≈ {m.alpha*1e6} × 10⁻⁶ K⁻¹</option>)}</select></label>;}
-function BarDrawing({l0,delta,color}:{l0:number;delta:number;color:string}) {
- const base=60*l0,width=base+delta*60*100;
- return <svg viewBox="0 0 520 220" role="img" aria-label={`Barra: ${fmt(l0)} metri iniziali, variazione ${fmt(delta*1000)} millimetri, ingrandimento della variazione cento volte`}><defs><linearGradient id="metal" x2="0" y2="1"><stop stopColor="#d6ddd4"/><stop offset=".5" stopColor={color}/><stop offset="1" stopColor="#667e76"/></linearGradient></defs><path d={`M65 70H${65+base}V121H65Z`} fill="none" stroke="#98ac9d" strokeDasharray="5 4"/><rect x="65" y="83" width={width} height="50" rx="3" fill="url(#metal)"/><path d={`M65 146V165H${65+base}V146`} fill="none" stroke="#829987"/><text x={65+base/2} y="185" textAnchor="middle" fill="#486652" fontSize="13">L₀ = {fmt(l0)} m</text><line x1={65+base} x2={65+base} y1="56" y2="142" stroke="#809783" strokeDasharray="3 3"/><line x1={65+width} x2={65+width} y1="56" y2="142" stroke="#b66d45"/><text x="260" y="32" textAnchor="middle" fill="#ad6b44" fontSize="12">Variazione della lunghezza amplificata ×100</text><text x="67" y="211" fill="#607461" fontSize="11">Tratteggio: lunghezza iniziale · tratto arancione: estremità finale</text></svg>;
+function MaterialSelect({
+  value,
+  onChange,
+}: {
+  value: Material;
+  onChange: (v: Material) => void;
+}) {
+  return (
+    <label className="field-label">
+      Materiale
+      <select
+        aria-label="Materiale"
+        value={value}
+        onChange={(e) => onChange(e.target.value as Material)}
+      >
+        {Object.entries(materials).map(([id, m]) => (
+          <option key={id} value={id}>
+            {m.name} · α ≈ {m.alpha * 1e6} × 10⁻⁶ K⁻¹
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+function BarDrawing({
+  l0,
+  delta,
+  color,
+}: {
+  l0: number;
+  delta: number;
+  color: string;
+}) {
+  const base = 60 * l0,
+    width = base + delta * 60 * 100;
+  return (
+    <svg
+      viewBox="0 0 520 220"
+      role="img"
+      aria-label={`Barra: ${fmt(l0)} metri iniziali, variazione ${fmt(delta * 1000)} millimetri, ingrandimento della variazione cento volte`}
+    >
+      <defs>
+        <linearGradient id="metal" x2="0" y2="1">
+          <stop stopColor="#d6ddd4" />
+          <stop offset=".5" stopColor={color} />
+          <stop offset="1" stopColor="#667e76" />
+        </linearGradient>
+      </defs>
+      <path
+        d={`M65 70H${65 + base}V121H65Z`}
+        fill="none"
+        stroke="#98ac9d"
+        strokeDasharray="5 4"
+      />
+      <rect x="65" y="83" width={width} height="50" rx="3" fill="url(#metal)" />
+      <path d={`M65 146V165H${65 + base}V146`} fill="none" stroke="#829987" />
+      <text
+        x={65 + base / 2}
+        y="185"
+        textAnchor="middle"
+        fill="#486652"
+        fontSize="13"
+      >
+        L₀ = {fmt(l0)} m
+      </text>
+      <line
+        x1={65 + base}
+        x2={65 + base}
+        y1="56"
+        y2="142"
+        stroke="#809783"
+        strokeDasharray="3 3"
+      />
+      <line x1={65 + width} x2={65 + width} y1="56" y2="142" stroke="#b66d45" />
+      <text x="260" y="32" textAnchor="middle" fill="#ad6b44" fontSize="12">
+        Variazione della lunghezza amplificata ×100
+      </text>
+      <text x="67" y="211" fill="#607461" fontSize="11">
+        Tratteggio: lunghezza iniziale · tratto arancione: estremità finale
+      </text>
+    </svg>
+  );
 }
 function LinearSim() {
- const [t0,setT0]=useState(20),[t,setT]=useState(70),[l0,setL0]=useState(2),[material,setMaterial]=useState<Material>('alluminio'),[view,setView]=useState<View>('macro'),[math,setMath]=useState(true),[plot,setPlot]=useState('length');
- const m=materials[material],dt=t-t0,r=linearExpansion(l0,m.alpha,dt);const lo=linearExpansion(l0,m.alpha,-20-t0).length,hi=linearExpansion(l0,m.alpha,120-t0).length;
- return <><div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<BarDrawing l0={l0} delta={r.delta} color={m.color}/>} {view!=='macro'&&<Particles temperature={t} solid expanded={m.alpha*dt*100}/>}<div className="stats three"><Stat label="Lunghezza iniziale" value={`${fmt(l0,3)} m`}/><Stat label="Lunghezza finale" value={`${fmt(r.length,5)} m`} accent/><Stat label="Allungamento ΔL" value={`${fmt(r.delta*1000,3)} mm`} accent/></div><Note>Barra libera e uniforme. Solo la variazione nel disegno è amplificata ×100; i numeri riportano il risultato del modello.</Note></div><div className="controls"><MaterialSelect value={material} onChange={setMaterial}/><Range label="Temperatura iniziale" value={t0} onChange={setT0} min={-20} max={80} unit="°C"/><Range label="Temperatura finale" value={t} onChange={setT} min={-20} max={120} unit="°C"/><Range label="Lunghezza iniziale" value={l0} onChange={setL0} min={.5} max={5} step={.1} unit="m" digits={1}/><label className="check"><input type="checkbox" checked={math} onChange={e=>setMath(e.target.checked)}/>Mostra il calcolo</label><p className="muted">ΔT = {t} − ({t0}) = {dt} K. α è indicativo vicino alla temperatura ambiente.</p></div></div>{math&&<div className="live-calculation"><Formula formula="\Delta L\approx L_0\alpha\Delta T"/><p>{fmt(l0,1)} m × {m.alpha*1e6} × 10⁻⁶ K⁻¹ × ({dt} K) = <strong>{fmt(r.delta,6)} m = {fmt(r.delta*1000,3)} mm</strong></p><p>L = {fmt(l0,3)} m + ({fmt(r.delta,6)} m) = {fmt(r.length,6)} m</p></div>}<div className="plot-choice segmented"><button aria-pressed={plot==='length'} onClick={()=>setPlot('length')}>L in funzione di T</button><button aria-pressed={plot==='delta'} onClick={()=>setPlot('delta')}>ΔL in funzione di ΔT</button></div>{plot==='length'?<Chart series={[{name:`${m.name}: L(T)`,color:'#287d71',points:sample(-20,120,x=>linearExpansion(l0,m.alpha,x-t0).length)}]} xLabel="Temperatura finale T (°C)" yLabel="Lunghezza L (m)" xMin={-20} xMax={120} yMin={lo-(hi-lo)*.1} yMax={hi+(hi-lo)*.1} point={[t,r.length]} markers={[{x:t0,label:'T₀: L = L₀'}]}/>:<Chart series={[{name:'ΔL(ΔT): proporzionalità diretta',color:'#bd714b',points:sample(-100,140,x=>linearExpansion(l0,m.alpha,x).delta*1000)}]} xLabel="Intervallo ΔT (K)" yLabel="Allungamento ΔL (mm)" xMin={-100} xMax={140} yMin={-100*l0*m.alpha*1000} yMax={140*l0*m.alpha*1000} point={[dt,r.delta*1000]} markers={[{x:0,label:'Origine: ΔL = 0'}]}/>}<p className="graph-reading">Pendenza fisica αL₀ = <strong>{fmt(m.alpha*l0*1e6,1)} μm/K</strong>. Il grafico L(T) è affine; quello ΔL(ΔT) è direttamente proporzionale. La scala verticale si adatta: confronta i valori, non solo l’inclinazione visiva.</p></>;
+  const [t0, setT0] = useState(20),
+    [t, setT] = useState(70),
+    [l0, setL0] = useState(2),
+    [material, setMaterial] = useState<Material>("alluminio"),
+    [view, setView] = useState<View>("macro"),
+    [math, setMath] = useState(true),
+    [plot, setPlot] = useState("length");
+  const m = materials[material],
+    dt = t - t0,
+    r = linearExpansion(l0, m.alpha, dt);
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment">
+          <ViewToggle value={view} onChange={setView} />
+          {view !== "micro" && (
+            <BarDrawing l0={l0} delta={r.delta} color={m.color} />
+          )}{" "}
+          {view !== "macro" && (
+            <Particles temperature={t} solid expanded={m.alpha * dt * 100} />
+          )}
+          <div className="stats three">
+            <Stat label="Lunghezza iniziale" value={`${fmt(l0, 3)} m`} />
+            <Stat
+              label="Lunghezza finale"
+              value={`${fmt(r.length, 5)} m`}
+              accent
+            />
+            <Stat
+              label="Allungamento ΔL"
+              value={`${fmt(r.delta * 1000, 3)} mm`}
+              accent
+            />
+          </div>
+          <Note>
+            Barra libera e uniforme. Solo la variazione nel disegno è
+            amplificata ×100; i numeri riportano il risultato del modello.
+          </Note>
+        </div>
+        <div className="controls">
+          <MaterialSelect value={material} onChange={setMaterial} />
+          <Range
+            label="Temperatura iniziale"
+            value={t0}
+            onChange={setT0}
+            min={-20}
+            max={80}
+            unit="°C"
+          />
+          <Range
+            label="Temperatura finale"
+            value={t}
+            onChange={setT}
+            min={-20}
+            max={120}
+            unit="°C"
+          />
+          <Range
+            label="Lunghezza iniziale"
+            value={l0}
+            onChange={setL0}
+            min={0.5}
+            max={5}
+            step={0.1}
+            unit="m"
+            digits={1}
+          />
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={math}
+              onChange={(e) => setMath(e.target.checked)}
+            />
+            Mostra il calcolo
+          </label>
+          <p className="muted">
+            ΔT = {t} − ({t0}) = {dt} K. α è indicativo vicino alla temperatura
+            ambiente.
+          </p>
+        </div>
+      </div>
+      {math && (
+        <div className="live-calculation">
+          <Formula formula="\Delta L\approx L_0\alpha\Delta T" />
+          <p>
+            {fmt(l0, 1)} m × {m.alpha * 1e6} × 10⁻⁶ K⁻¹ × ({dt} K) ={" "}
+            <strong>
+              {fmt(r.delta, 6)} m = {fmt(r.delta * 1000, 3)} mm
+            </strong>
+          </p>
+          <p>
+            L = {fmt(l0, 3)} m + ({fmt(r.delta, 6)} m) = {fmt(r.length, 6)} m
+          </p>
+        </div>
+      )}
+      <div className="plot-choice segmented">
+        <button
+          aria-pressed={plot === "length"}
+          onClick={() => setPlot("length")}
+        >
+          L in funzione di T
+        </button>
+        <button
+          aria-pressed={plot === "delta"}
+          onClick={() => setPlot("delta")}
+        >
+          ΔL in funzione di ΔT
+        </button>
+      </div>
+      {plot === "length" ? (
+        <Chart
+          series={[
+            {
+              name: `${m.name}: L(T)`,
+              color: "#65d7c3",
+              points: sample(
+                -20,
+                120,
+                (x) => linearExpansion(l0, m.alpha, x - t0).length,
+              ),
+            },
+          ]}
+          xLabel="Temperatura finale T (°C)"
+          yLabel="Lunghezza L (m)"
+          xMin={-20}
+          xMax={120}
+          yMin={l0 - 0.018}
+          yMax={l0 + 0.018}
+          point={[t, r.length]}
+          markers={[{ x: t0, label: "T₀: L = L₀" }]}
+        />
+      ) : (
+        <Chart
+          series={[
+            {
+              name: "ΔL(ΔT): proporzionalità diretta",
+              color: "#f0a477",
+              points: sample(
+                -100,
+                140,
+                (x) => linearExpansion(l0, m.alpha, x).delta * 1000,
+              ),
+            },
+          ]}
+          xLabel="Intervallo ΔT (K)"
+          yLabel="Allungamento ΔL (mm)"
+          xMin={-100}
+          xMax={140}
+          yMin={-13}
+          yMax={18}
+          point={[dt, r.delta * 1000]}
+          markers={[{ x: 0, label: "Origine: ΔL = 0" }]}
+        />
+      )}
+      <p className="graph-reading">
+        Pendenza fisica αL₀ = <strong>{fmt(m.alpha * l0 * 1e6, 1)} μm/K</strong>
+        . Il grafico L(T) è affine; quello ΔL(ΔT) è direttamente proporzionale.
+        L’ampiezza della scala verticale resta fissa: cambiando materiale o
+        lunghezza iniziale puoi confrontare anche l’inclinazione.
+      </p>
+    </>
+  );
 }
 function VolumeSim() {
- const [side,setSide]=useState(10),[dt,setDt]=useState(50),[material,setMaterial]=useState<Material>('alluminio'),[view,setView]=useState<View>('macro'),[liquid,setLiquid]=useState(1.1),[vessel,setVessel]=useState(.03);
- const m=materials[material],beta=isotropicBeta(m.alpha),v0=side**3,result=volumeExpansion(v0,beta,dt),edge=side*(1+m.alpha*dt),x=m.alpha*dt,visual=1+x*100;
- const base=70+side*3,w=base*visual,ox=180,oy=235,dx=64*visual,dy=43*visual;
- const liquidDelta=1000*liquid*1e-3*dt,vesselDelta=1000*vessel*1e-3*dt,excess=Math.max(0,liquidDelta-vesselDelta);
- return <><div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<svg viewBox="0 0 520 340" role="img" aria-label={`Cubo di lato finale ${fmt(edge,4)} centimetri e volume ${fmt(result.volume,3)} centimetri cubi`}><path d={`M180 235h${base}v${-base}H180Z M180 ${235-base}l64 -43h${base}v${base}l-64 43 M${180+base} ${235-base}l64 -43`} fill="none" stroke="#92aa99" strokeDasharray="5 4"/><path d={`M${ox} ${oy}h${w}v${-w}h${-w}z`} fill="#77a696" stroke="#426e5b"/><path d={`M${ox} ${oy-w}l${dx} ${-dy}h${w}l${-dx} ${dy}z`} fill="#bed4be" stroke="#426e5b"/><path d={`M${ox+w} ${oy}l${dx} ${-dy}v${-w}l${-dx} ${dy}z`} fill="#4b806b" stroke="#426e5b"/><text x="260" y="295" textAnchor="middle" fill="#4b6c57" fontSize="13">Tre direzioni · stessa dilatazione relativa</text><text x="260" y="319" textAnchor="middle" fill="#9b6b43" fontSize="11">Variazione degli spigoli amplificata ×100 · forme non in scala</text></svg>}{view!=='macro'&&<Particles solid temperature={20+dt} expanded={x*100}/>}<div className="stats three"><Stat label="Spigolo finale" value={`${fmt(edge,4)} cm`}/><Stat label="Volume finale, 1° ordine" value={`${fmt(result.volume,3)} cm³`} accent/><Stat label="Variazione ΔV" value={`${fmt(result.delta,3)} cm³`}/></div></div><div className="controls"><MaterialSelect value={material} onChange={setMaterial}/><Range label="Spigolo iniziale" value={side} onChange={setSide} min={5} max={20} unit="cm"/><Range label="Variazione di temperatura" value={dt} onChange={setDt} min={-40} max={100} unit="K"/><Stat label="Coefficiente β ≈ 3α" value={`${fmt(beta*1e6,0)} × 10⁻⁶ K⁻¹`}/><p className="calculation">ΔV ≈ {fmt(beta*1e6,0)} × 10⁻⁶ × {fmt(v0,0)} × ({dt}) = {fmt(result.delta,3)} cm³</p></div></div><Chart series={[{name:'Volume al primo ordine',color:'#287d71',points:sample(-40,100,n=>volumeExpansion(v0,beta,n).volume)}]} xLabel="Intervallo ΔT (K)" yLabel="Volume V (cm³)" xMin={-40} xMax={100} yMin={volumeExpansion(v0,beta,-40).volume} yMax={volumeExpansion(v0,beta,100).volume} point={[dt,result.volume]}/><Disclosure title="Quanto stiamo trascurando nel cubo del binomio?"><Formula formula="(1+x)^3=1+3x+3x^2+x^3"/><p>Qui x = {fmt(x,6)}. Il fattore al primo ordine è {fmt(1+3*x,8)}; il fattore geometrico cubico è {fmt((1+x)**3,8)}. La differenza è {fmt(3*x*x+x*x*x,9)} rispetto a V₀.</p><p>Gli spigoli mostrati seguono la legge lineare. Il volume visualizzato nei risultati segue la legge volumica al primo ordine: le due rappresentazioni differiscono dei termini appena indicati.</p></Disclosure><div className="liquid-lab"><h3>Un recipiente pieno: quanto trabocca?</h3><p>Un litro di liquido e un recipiente da un litro partono da 20 °C. Per il riscaldamento usiamo ΔT = {Math.max(0,dt)} K; se ΔT ≤ 0 il modello di trabocco non si attiva.</p><div className="sim-grid"><div><Range label="β del liquido, valore ipotetico" value={liquid} onChange={setLiquid} min={.1} max={1.5} step={.05} unit="× 10⁻³ K⁻¹" digits={2}/><Range label="β del recipiente, valore ipotetico" value={vessel} onChange={setVessel} min={.01} max={.3} step={.01} unit="× 10⁻³ K⁻¹" digits={2}/></div><div className="stats"><Stat label="Dilatazione del liquido" value={`${fmt(Math.max(0,liquidDelta))} mL`}/><Stat label="Spazio creato dal recipiente" value={`${fmt(Math.max(0,vesselDelta))} mL`}/><Stat label="Trabocco ideale" value={`${fmt(dt>0?excess:0)} mL`} accent/></div></div><Note>β scelti per esplorare il modello, non misure di sostanze identificate. Trascuriamo menisco, evaporazione e variazioni dei coefficienti.</Note></div></>;
+  const [side, setSide] = useState(10),
+    [dt, setDt] = useState(50),
+    [material, setMaterial] = useState<Material>("alluminio"),
+    [view, setView] = useState<View>("macro"),
+    [liquid, setLiquid] = useState(1.1),
+    [vessel, setVessel] = useState(0.03);
+  const m = materials[material],
+    beta = isotropicBeta(m.alpha),
+    v0 = side ** 3,
+    result = volumeExpansion(v0, beta, dt),
+    edge = side * (1 + m.alpha * dt),
+    x = m.alpha * dt,
+    visual = 1 + x * 100;
+  const base = 70 + side * 3,
+    w = base * visual,
+    ox = 180,
+    oy = 235,
+    dx = 64 * visual,
+    dy = 43 * visual;
+  const liquidDelta = 1000 * liquid * 1e-3 * dt,
+    vesselDelta = 1000 * vessel * 1e-3 * dt,
+    excess = Math.max(0, liquidDelta - vesselDelta);
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment">
+          <ViewToggle value={view} onChange={setView} />
+          {view !== "micro" && (
+            <svg
+              viewBox="0 0 520 340"
+              role="img"
+              aria-label={`Cubo di lato finale ${fmt(edge, 4)} centimetri e volume ${fmt(result.volume, 3)} centimetri cubi`}
+            >
+              <path
+                d={`M180 235h${base}v${-base}H180Z M180 ${235 - base}l64 -43h${base}v${base}l-64 43 M${180 + base} ${235 - base}l64 -43`}
+                fill="none"
+                stroke="#92aa99"
+                strokeDasharray="5 4"
+              />
+              <path
+                d={`M${ox} ${oy}h${w}v${-w}h${-w}z`}
+                fill="#77a696"
+                stroke="#426e5b"
+              />
+              <path
+                d={`M${ox} ${oy - w}l${dx} ${-dy}h${w}l${-dx} ${dy}z`}
+                fill="#bed4be"
+                stroke="#426e5b"
+              />
+              <path
+                d={`M${ox + w} ${oy}l${dx} ${-dy}v${-w}l${-dx} ${dy}z`}
+                fill="#4b806b"
+                stroke="#426e5b"
+              />
+              <text
+                x="260"
+                y="295"
+                textAnchor="middle"
+                fill="#4b6c57"
+                fontSize="13"
+              >
+                Tre direzioni · stessa dilatazione relativa
+              </text>
+              <text
+                x="260"
+                y="319"
+                textAnchor="middle"
+                fill="#9b6b43"
+                fontSize="11"
+              >
+                Variazione degli spigoli amplificata ×100 · forme non in scala
+              </text>
+            </svg>
+          )}
+          {view !== "macro" && (
+            <Particles solid temperature={20 + dt} expanded={x * 100} />
+          )}
+          <div className="stats three">
+            <Stat label="Spigolo finale" value={`${fmt(edge, 4)} cm`} />
+            <Stat
+              label="Volume finale, 1° ordine"
+              value={`${fmt(result.volume, 3)} cm³`}
+              accent
+            />
+            <Stat label="Variazione ΔV" value={`${fmt(result.delta, 3)} cm³`} />
+          </div>
+        </div>
+        <div className="controls">
+          <MaterialSelect value={material} onChange={setMaterial} />
+          <Range
+            label="Spigolo iniziale"
+            value={side}
+            onChange={setSide}
+            min={5}
+            max={20}
+            unit="cm"
+          />
+          <Range
+            label="Variazione di temperatura"
+            value={dt}
+            onChange={setDt}
+            min={-40}
+            max={100}
+            unit="K"
+          />
+          <Stat
+            label="Coefficiente β ≈ 3α"
+            value={`${fmt(beta * 1e6, 0)} × 10⁻⁶ K⁻¹`}
+          />
+          <p className="calculation">
+            ΔV ≈ {fmt(beta * 1e6, 0)} × 10⁻⁶ × {fmt(v0, 0)} × ({dt}) ={" "}
+            {fmt(result.delta, 3)} cm³
+          </p>
+        </div>
+      </div>
+      <Chart
+        series={[
+          {
+            name: "Volume al primo ordine",
+            color: "#65d7c3",
+            points: sample(
+              -40,
+              100,
+              (n) => volumeExpansion(v0, beta, n).volume,
+            ),
+          },
+        ]}
+        xLabel="Intervallo ΔT (K)"
+        yLabel="Volume V (cm³)"
+        xMin={-40}
+        xMax={100}
+        yMin={volumeExpansion(v0, beta, -40).volume}
+        yMax={volumeExpansion(v0, beta, 100).volume}
+        point={[dt, result.volume]}
+      />
+      <Disclosure title="Quanto stiamo trascurando nel cubo del binomio?">
+        <Formula formula="(1+x)^3=1+3x+3x^2+x^3" />
+        <p>
+          Qui x = {fmt(x, 6)}. Il fattore al primo ordine è {fmt(1 + 3 * x, 8)};
+          il fattore geometrico cubico è {fmt((1 + x) ** 3, 8)}. La differenza è{" "}
+          {fmt(3 * x * x + x * x * x, 9)} rispetto a V₀.
+        </p>
+        <p>
+          Gli spigoli mostrati seguono la legge lineare. Il volume visualizzato
+          nei risultati segue la legge volumica al primo ordine: le due
+          rappresentazioni differiscono dei termini appena indicati.
+        </p>
+      </Disclosure>
+      <div className="liquid-lab">
+        <h3>Un recipiente pieno: quanto trabocca?</h3>
+        <p>
+          Un litro di liquido e un recipiente da un litro partono da 20 °C. Per
+          il modello usiamo ΔT = {dt} K: un valore negativo descrive un
+          raffreddamento. Il trabocco dipende dalla differenza fra i cambiamenti
+          del liquido e del recipiente.
+        </p>
+        <div className="sim-grid">
+          <div>
+            <Range
+              label="β del liquido, valore ipotetico"
+              value={liquid}
+              onChange={setLiquid}
+              min={0.1}
+              max={1.5}
+              step={0.05}
+              unit="× 10⁻³ K⁻¹"
+              digits={2}
+            />
+            <Range
+              label="β del recipiente, valore ipotetico"
+              value={vessel}
+              onChange={setVessel}
+              min={0.01}
+              max={0.3}
+              step={0.01}
+              unit="× 10⁻³ K⁻¹"
+              digits={2}
+            />
+          </div>
+          <div className="stats">
+            <Stat
+              label="Variazione del liquido"
+              value={`${fmt(liquidDelta)} mL`}
+            />
+            <Stat
+              label="Variazione del recipiente"
+              value={`${fmt(vesselDelta)} mL`}
+            />
+            <Stat label="Trabocco ideale" value={`${fmt(excess)} mL`} accent />
+          </div>
+        </div>
+        <Note>
+          β scelti per esplorare il modello, non misure di sostanze
+          identificate. Trascuriamo menisco, evaporazione e variazioni dei
+          coefficienti.
+        </Note>
+      </div>
+    </>
+  );
 }
 function WaterSim() {
- const [t,setT]=useState(1),[view,setView]=useState<View>('both'),[winter,setWinter]=useState(false);const s=waterState(t),level=135-(s.volume-1)*11000;
- return <><div className="sim-grid"><div className="experiment"><ViewToggle value={view} onChange={setView}/>{view!=='micro'&&<svg viewBox="0 0 520 280" role="img" aria-label={`Acqua a ${t} gradi Celsius, volume relativo ${fmt(s.volume,5)}`}><defs><linearGradient id="water-fill" x2="0" y2="1"><stop stopColor="#aed2c1" stopOpacity=".5"/><stop offset="1" stopColor="#72aa9b" stopOpacity=".8"/></linearGradient></defs><path d={`M155 ${level}Q200 ${level-5} 260 ${level}T365 ${level}V245H155Z`} fill="url(#water-fill)"/><path d="M155 55V245H365V55" fill="none" stroke="#86a999" strokeWidth="2"/><line x1="140" x2="380" y1="135" y2="135" stroke="#97a990" strokeDasharray="4 3"/><text x="260" y="263" textAnchor="middle" fill="#567361" fontSize="11">Tratteggio: volume a 4 °C · variazione amplificata ×100</text><text x="260" y="120" textAnchor="middle" fontSize="28" fill="#276858">{t} °C</text><text x="260" y="143" textAnchor="middle" fontSize="12" fill="#567361">Stessa massa · pressione ordinaria</text></svg>}{view!=='macro'&&<Particles temperature={t} water/>}<Note>Curva e rete molecolare qualitative. Il massimo è posto a 4 °C. I numeri relativi sono risultati del modello, non dati sperimentali.</Note></div><div className="controls"><Range label="Temperatura dell’acqua liquida" value={t} onChange={setT} min={0} max={20} unit="°C"/><button className="btn secondary" onClick={()=>setT(4)}>Trova il massimo della densità</button><div className="stats"><Stat label="Densità relativa ρ/ρ₄" value={fmt(s.density,6)} accent/><Stat label="Volume relativo V/V₄" value={fmt(s.volume,6)}/></div><p className="insight-text">{t<4?'Se scaldi verso 4 °C, la densità aumenta e il volume diminuisce.':t===4?'Qui il modello ha densità massima e volume minimo.':'Se scaldi ancora, la densità diminuisce e il volume aumenta.'}</p></div></div><Chart series={[{name:'Densità relativa · curva qualitativa',color:'#287d71',points:sample(0,20,n=>waterState(n).density)}]} xLabel="Temperatura del liquido (°C)" yLabel="Densità relativa ρ/ρ₄ (senza unità)" xMin={0} xMax={20} yMin={.9983} yMax={1.0001} point={[t,s.density]} markers={[{x:4,label:'Massimo vicino a 4 °C'}]}/><Disclosure title="La curva del modello e la massa conservata"><Formula formula="\rho_{rel}=1-0{,}000006(t-4)^2,\qquad V_{rel}=1/\rho_{rel}"/><p>t è il valore numerico Celsius, fra 0 e 20. Il prodotto ρrel × Vrel = {fmt(s.density*s.volume,6)} resta uno. La parabola non rappresenta un adattamento a misure.</p></Disclosure><div className="lake-lab"><div><p className="eyebrow">UN FENOMENO, UN PAESAGGIO</p><h3>Perché un lago gela dall’alto?</h3><p>{winter?'Nello scenario ideale invernale, il ghiaccio galleggia in superficie; sotto, acqua vicina a 4 °C è più densa. Lo strato superficiale limita gli scambi e l’acqua sottostante può restare liquida.':'Prima del raffreddamento invernale, immaginiamo il lago mescolato. L’acqua superficiale che si avvicina a 4 °C diventa più densa e può scendere. Sotto 4 °C la tendenza si inverte.'}</p><button className="btn secondary" onClick={()=>setWinter(v=>!v)}>{winter?'Torna al lago mescolato':'Osserva lo scenario invernale'}</button><p className="muted">Schema ideale di acqua dolce: vento, salinità, profondità e mescolamento possono modificare la stratificazione reale.</p></div><svg viewBox="0 0 350 250" role="img" aria-label={winter?'Lago invernale con ghiaccio in superficie e acqua liquida più densa in profondità':'Lago idealmente mescolato prima del freddo'}><path d="M20 50Q50 90 75 210H275Q305 90 330 50" fill="#80b7a8" stroke="#74957d" strokeWidth="2"/>{winter&&<path d="M20 50H330L322 70H28Z" fill="#eef5e9" stroke="#becfc3"/>}<text x="175" y="37" textAnchor="middle" fill="#54715c" fontSize="13">{winter?'Ghiaccio in superficie':'Acqua dolce mescolata'}</text><text x="175" y="105" textAnchor="middle" fill="#245f53" fontSize="14">{winter?'0–1 °C · meno densa':'Circa 10 °C'}</text><text x="175" y="184" textAnchor="middle" fill="#245f53" fontSize="14">{winter?'Circa 4 °C · più densa':'Circa 10 °C'}</text>{!winter&&<path d="M95 100q-20 45 10 70M255 170q20-45-10-70" stroke="#e6f0df" strokeWidth="3" fill="none"/>}</svg></div></>;
+  const [t, setT] = useState(1),
+    [view, setView] = useState<View>("both"),
+    [winter, setWinter] = useState(false);
+  const s = waterState(t),
+    level = 135 - (s.volume - 1) * 11000;
+  return (
+    <>
+      <div className="sim-grid">
+        <div className="experiment">
+          <ViewToggle value={view} onChange={setView} />
+          {view !== "micro" && (
+            <svg
+              viewBox="0 0 520 280"
+              role="img"
+              aria-label={`Acqua a ${t} gradi Celsius, volume relativo ${fmt(s.volume, 5)}`}
+            >
+              <defs>
+                <linearGradient id="water-fill" x2="0" y2="1">
+                  <stop stopColor="#366b80" stopOpacity=".5" />
+                  <stop offset="1" stopColor="#45879a" stopOpacity=".8" />
+                </linearGradient>
+              </defs>
+              <path
+                d={`M155 ${level}Q200 ${level - 5} 260 ${level}T365 ${level}V245H155Z`}
+                fill="url(#water-fill)"
+              />
+              <path
+                d="M155 55V245H365V55"
+                fill="none"
+                stroke="#86a999"
+                strokeWidth="2"
+              />
+              <line
+                x1="140"
+                x2="380"
+                y1="135"
+                y2="135"
+                stroke="#97a990"
+                strokeDasharray="4 3"
+              />
+              <text
+                x="260"
+                y="263"
+                textAnchor="middle"
+                fill="#567361"
+                fontSize="11"
+              >
+                Tratteggio: volume a 4 °C · variazione amplificata ×100
+              </text>
+              <text
+                x="260"
+                y="120"
+                textAnchor="middle"
+                fontSize="28"
+                fill="#276858"
+              >
+                {t} °C
+              </text>
+              <text
+                x="260"
+                y="143"
+                textAnchor="middle"
+                fontSize="12"
+                fill="#567361"
+              >
+                Stessa massa · pressione ordinaria
+              </text>
+            </svg>
+          )}
+          {view !== "macro" && <Particles temperature={t} water />}
+          <Note>
+            Curva e rete molecolare qualitative. Il massimo è posto a 4 °C. I
+            numeri relativi sono risultati del modello, non dati sperimentali.
+          </Note>
+        </div>
+        <div className="controls">
+          <Range
+            label="Temperatura dell’acqua liquida"
+            value={t}
+            onChange={setT}
+            min={0}
+            max={20}
+            unit="°C"
+          />
+          <button className="btn secondary" onClick={() => setT(4)}>
+            Trova il massimo della densità
+          </button>
+          <div className="stats">
+            <Stat
+              label="Densità relativa ρ/ρ₄"
+              value={fmt(s.density, 6)}
+              accent
+            />
+            <Stat label="Volume relativo V/V₄" value={fmt(s.volume, 6)} />
+          </div>
+          <p className="insight-text">
+            {t < 4
+              ? "Se scaldi verso 4 °C, la densità aumenta e il volume diminuisce."
+              : t === 4
+                ? "Qui il modello ha densità massima e volume minimo."
+                : "Se scaldi ancora, la densità diminuisce e il volume aumenta."}
+          </p>
+        </div>
+      </div>
+      <Chart
+        series={[
+          {
+            name: "Densità relativa · curva qualitativa",
+            color: "#65d7c3",
+            points: sample(0, 20, (n) => waterState(n).density),
+          },
+        ]}
+        xLabel="Temperatura del liquido (°C)"
+        yLabel="Densità relativa ρ/ρ₄ (senza unità)"
+        xMin={0}
+        xMax={20}
+        yMin={0.9983}
+        yMax={1.0001}
+        point={[t, s.density]}
+        markers={[{ x: 4, label: "Massimo vicino a 4 °C" }]}
+      />
+      <Disclosure title="La curva del modello e la massa conservata">
+        <Formula formula="\rho_{rel}=1-0{,}000006(t-4)^2,\qquad V_{rel}=1/\rho_{rel}" />
+        <p>
+          t è il valore numerico Celsius, fra 0 e 20. Il prodotto ρrel × Vrel ={" "}
+          {fmt(s.density * s.volume, 6)} resta uno. La parabola non rappresenta
+          un adattamento a misure.
+        </p>
+      </Disclosure>
+      <div className="lake-lab">
+        <div>
+          <p className="eyebrow">UN FENOMENO, UN PAESAGGIO</p>
+          <h3>Perché un lago gela dall’alto?</h3>
+          <p>
+            {winter
+              ? "Nello scenario ideale invernale, il ghiaccio galleggia in superficie; sotto, acqua vicina a 4 °C è più densa. Lo strato superficiale limita gli scambi e l’acqua sottostante può restare liquida."
+              : "Prima del raffreddamento invernale, immaginiamo il lago mescolato. L’acqua superficiale che si avvicina a 4 °C diventa più densa e può scendere. Sotto 4 °C la tendenza si inverte."}
+          </p>
+          <button
+            className="btn secondary"
+            onClick={() => setWinter((v) => !v)}
+          >
+            {winter
+              ? "Torna al lago mescolato"
+              : "Osserva lo scenario invernale"}
+          </button>
+          <p className="muted">
+            Schema ideale di acqua dolce: vento, salinità, profondità e
+            mescolamento possono modificare la stratificazione reale.
+          </p>
+        </div>
+        <svg
+          viewBox="0 0 350 250"
+          role="img"
+          aria-label={
+            winter
+              ? "Lago invernale con ghiaccio in superficie e acqua liquida più densa in profondità"
+              : "Lago idealmente mescolato prima del freddo"
+          }
+        >
+          <path
+            d="M20 50Q50 90 75 210H275Q305 90 330 50"
+            fill="#285768"
+            stroke="#74957d"
+            strokeWidth="2"
+          />
+          {winter && (
+            <path d="M20 50H330L322 70H28Z" fill="#b5d1e3" stroke="#becfc3" />
+          )}
+          <text x="175" y="37" textAnchor="middle" fill="#54715c" fontSize="13">
+            {winter ? "Ghiaccio in superficie" : "Acqua dolce mescolata"}
+          </text>
+          <text
+            x="175"
+            y="105"
+            textAnchor="middle"
+            fill="#245f53"
+            fontSize="14"
+          >
+            {winter ? "0–1 °C · meno densa" : "Circa 10 °C"}
+          </text>
+          <text
+            x="175"
+            y="184"
+            textAnchor="middle"
+            fill="#245f53"
+            fontSize="14"
+          >
+            {winter ? "Circa 4 °C · più densa" : "Circa 10 °C"}
+          </text>
+          {!winter && (
+            <path
+              d="M95 100q-20 45 10 70M255 170q20-45-10-70"
+              stroke="#e6f0df"
+              strokeWidth="3"
+              fill="none"
+            />
+          )}
+        </svg>
+      </div>
+    </>
+  );
 }
-function FinalSim(){
- const [experiment,setExperiment]=useState('lineare'),[notes,setNotes]=useState(()=>{try{return localStorage.getItem('termolab-hypothesis')||'';}catch{return '';}}),[saved,setSaved]=useState(false);
- return <><div className="final-choice"><label className="field-label">Scegli un esperimento<select value={experiment} onChange={e=>setExperiment(e.target.value)}><option value="lineare">Confronta le barre</option><option value="volumica">Dal lato al volume</option><option value="acqua">L’eccezione dell’acqua</option><option value="conversioni">Confronta scale e intervalli</option><option value="celsius">Calibra un termometro</option><option value="termometro">Segui il termometro nel tempo</option></select></label><label className="field-label">La tua ipotesi<textarea value={notes} onChange={e=>{setNotes(e.target.value);setSaved(false);}} placeholder="Se cambio… mantenendo costante… mi aspetto… perché…" rows={3}/></label><button className="btn secondary" onClick={()=>{try{localStorage.setItem('termolab-hypothesis',notes);setSaved(true);}catch{setSaved(false);}}}>Salva la mia ipotesi su questo dispositivo</button>{saved&&<p role="status" className="saved">Ipotesi salvata.</p>}</div><SimulationContent key={experiment} id={experiment}/><Disclosure title="Confronta previsione e risultato" open><p>1. Che cosa hai cambiato? Che cosa hai mantenuto costante?</p><p>2. Il segno e l’entità della variazione sono quelli previsti?</p><p>3. Riesci a spiegare il risultato sia con le grandezze macroscopiche sia con il modello microscopico?</p><p>4. Quale ipotesi renderebbe inapplicabile il modello?</p></Disclosure></>;
+function FinalSim() {
+  const [experiment, setExperiment] = useState("lineare"),
+    [notes, setNotes] = useState(() => {
+      try {
+        return localStorage.getItem("termolab-hypothesis") || "";
+      } catch {
+        return "";
+      }
+    }),
+    [saved, setSaved] = useState(false);
+  return (
+    <>
+      <div className="final-choice">
+        <label className="field-label">
+          Scegli un esperimento
+          <select
+            value={experiment}
+            onChange={(e) => setExperiment(e.target.value)}
+          >
+            <option value="lineare">Confronta le barre</option>
+            <option value="volumica">Dal lato al volume</option>
+            <option value="acqua">L’eccezione dell’acqua</option>
+            <option value="conversioni">Confronta scale e intervalli</option>
+            <option value="celsius">Calibra un termometro</option>
+            <option value="termometro">Segui il termometro nel tempo</option>
+          </select>
+        </label>
+        <label className="field-label">
+          La tua ipotesi
+          <textarea
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              setSaved(false);
+            }}
+            placeholder="Se cambio… mantenendo costante… mi aspetto… perché…"
+            rows={3}
+          />
+        </label>
+        <button
+          className="btn secondary"
+          onClick={() => {
+            try {
+              localStorage.setItem("termolab-hypothesis", notes);
+              setSaved(true);
+            } catch {
+              setSaved(false);
+            }
+          }}
+        >
+          Salva la mia ipotesi su questo dispositivo
+        </button>
+        {saved && (
+          <p role="status" className="saved">
+            Ipotesi salvata.
+          </p>
+        )}
+      </div>
+      {[
+        "lineare",
+        "volumica",
+        "acqua",
+        "conversioni",
+        "celsius",
+        "termometro",
+      ].map((id) => (
+        <Activity key={id} mode={experiment === id ? "visible" : "hidden"}>
+          <div data-experiment={id}>
+            <SimulationContent id={id} />
+          </div>
+        </Activity>
+      ))}
+      <Disclosure title="Confronta previsione e risultato" open>
+        <p>1. Che cosa hai cambiato? Che cosa hai mantenuto costante?</p>
+        <p>2. Il segno e l’entità della variazione sono quelli previsti?</p>
+        <p>
+          3. Riesci a spiegare il risultato sia con le grandezze macroscopiche
+          sia con il modello microscopico?
+        </p>
+        <p>4. Quale ipotesi renderebbe inapplicabile il modello?</p>
+      </Disclosure>
+    </>
+  );
 }
-function SimulationContent({id}:{id:string}) {const components:Record<string,React.ComponentType>={temperatura:EquilibriumSim,termometro:ThermometerSim,celsius:CalibrationSim,operativa:OperationalSim,kelvin:KelvinSim,conversioni:ConversionSim,lineare:LinearSim,volumica:VolumeSim,acqua:WaterSim,laboratorio:FinalSim};const Component=components[id]||EquilibriumSim;return <Component/>;}
-export function Simulation({id}:{id:string}) {const [seed,setSeed]=useState(0);return <section className="simulation" aria-label="Laboratorio interattivo"><div className="sim-header"><span><Beaker size={18}/>IL TUO BANCO DI LABORATORIO</span><button className="reset" onClick={()=>setSeed(n=>n+1)}><RotateCcw size={14}/>Ripristina</button></div><div className="sim-content"><SimulationContent key={seed} id={id}/></div></section>;}
+function SimulationContent({ id }: { id: string }) {
+  const components: Record<string, React.ComponentType> = {
+    temperatura: EquilibriumSim,
+    termometro: ThermometerSim,
+    celsius: CalibrationSim,
+    operativa: OperationalSim,
+    kelvin: KelvinSim,
+    conversioni: ConversionSim,
+    lineare: LinearSim,
+    volumica: VolumeSim,
+    acqua: WaterSim,
+    laboratorio: FinalSim,
+  };
+  const Component = components[id] || EquilibriumSim;
+  return <Component />;
+}
+export function Simulation({ id }: { id: string }) {
+  const [seed, setSeed] = useState(0);
+  return (
+    <section className="simulation" aria-label="Laboratorio interattivo">
+      <div className="sim-header">
+        <span>
+          <Beaker size={18} />
+          IL TUO BANCO DI LABORATORIO
+        </span>
+        <button className="reset" onClick={() => setSeed((n) => n + 1)}>
+          <RotateCcw size={14} />
+          Ripristina
+        </button>
+      </div>
+      <div className="sim-content">
+        <SimulationContent key={seed} id={id} />
+      </div>
+    </section>
+  );
+}

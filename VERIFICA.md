@@ -1,5 +1,18 @@
 # Verifica TermoLab — 6 novembre 2026
 
+## Revisione: modalità scura e correzione degli esperimenti
+
+- Tema scuro completo: navigazione, lezioni, glossario, formule, controlli e superfici dei grafici; fondo scuro già nel documento iniziale.
+- Test automatici: **31/31** (16 fisici, 4 contenuti/formule, 11 regressioni dell’interfaccia e del timer).
+- Riprodotti sulla precedente versione: parametri che tornavano ai valori iniziali cambiando scheda; tempo bloccato da «Pausa animazioni» anche dopo l’avvio.
+- Corretti: conservazione di parametri e risposte nelle schede e nei banchi del laboratorio finale; pausa delle particelle indipendente dal tempo; completamento esatto e ripetizione con un clic; grafico trascinabile e coordinate SVG; scale verticali confrontabili; contrazioni del liquido e del recipiente; campi di conversione stabili; colori dei corpi coerenti con l’ordine delle temperature.
+- Browser desktop: tutti i cursori dei dieci moduli provati a inizio e fine intervallo, senza geometrie NaN/Infinity o overflow della pagina.
+- Viewport mobile 390 × 844: tutti i dieci moduli conservano i parametri dopo il passaggio alla matematica e il ritorno; nessun errore KaTeX o overflow della pagina.
+- Trascinamento effettivo del grafico provato nel browser: da −82,78 °C a 35,73 °C, con campi sincronizzati a 35,73 °C e 308,88 K.
+- Con particelle sospese, il modello dei due corpi raggiunge 18,0 s e temperature circa 50,1 e 49,9 °C. La pausa delle particelle non impedisce l’esperimento.
+
+## Verifica della prima pubblicazione
+
 - Controllo TypeScript: superato.
 - Build Vite di produzione: superata.
 - Test automatici: 20/20 superati (16 sui motori numerici, 4 su contenuti, formule e collegamenti).

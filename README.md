@@ -52,6 +52,9 @@ src/components/Shared.tsx   controlli accessibili, grafici, particelle e formule
 src/components/Simulations.tsx  esperimenti SVG e controlli sincronizzati
 src/App.tsx                routing, lezioni, glossario, mappa e progresso
 src/styles.css             design system, responsive e reduced motion
+src/dark.css               palette scura, superfici e grafici ad alto contrasto
+src/lib/useExperimentClock.ts  avvio, pausa e ripetizione degli esperimenti
+src/components/experiments.test.tsx  regressioni delle interazioni e dello stato
 docs/                      build pubblicata su GitHub Pages
 scripts/prepare-pages.mjs   copia controllata della build
 ```
@@ -85,4 +88,14 @@ Dopo modifiche: eseguire `pnpm test`, `pnpm prepare:pages`, poi includere sorgen
 
 ## Verifiche
 
-20 test automatici sui modelli, limiti, formule KaTeX, domande e rimandi. Controllo TypeScript e build di produzione. Verifica browser dei dieci moduli su desktop e viewport mobile 390 × 844, senza overflow della pagina; i grafici mobili possono scorrere internamente. Provati cambio di materiale e lunghezza, ripristino, glossario collegato, persistenza del completamento e massimo qualitativo della densità. Vedere `VERIFICA.md` per gli esiti di pubblicazione.
+31 test automatici sui modelli, limiti, formule KaTeX, domande, rimandi e interazioni. Controllo TypeScript e build di produzione. Verifica browser dei dieci moduli su desktop e viewport mobile 390 × 844, senza overflow della pagina; i grafici mobili possono scorrere internamente. Provati cambio di materiale e lunghezza, ripristino, glossario collegato, persistenza del completamento e massimo qualitativo della densità. Vedere `VERIFICA.md` per gli esiti di pubblicazione.
+
+### Correzioni degli esperimenti e modalità scura
+
+L’interfaccia usa una palette scura anche durante il primo caricamento. I pannelli delle lezioni e i banchi del laboratorio finale conservano i propri parametri e le risposte. React Activity (React 19.2 o successivo, lockfile incluso) sospende gli effetti dei pannelli nascosti senza cancellarne lo stato.
+
+Il comando **Pausa particelle** controlla soltanto il moto microscopico. **Avvia**, **Metti in pausa**, **Riprendi** e **Ripeti l’esperimento** controllano il tempo numerico e restano utilizzabili con reduced motion. I timer si sospendono quando il documento o il pannello è nascosto; il ritorno al pannello conserva il tempo raggiunto.
+
+I grafici di dilatazione mantengono un’ampiezza verticale comune per rendere confrontabili le pendenze. Il grafico Celsius–kelvin segue il trascinamento continuo e usa le coordinate effettive dell’SVG, anche quando cambia dimensione. Su touch, il punto ha un’area di presa più grande e il resto del grafico può scorrere. I campi di conversione non vengono sostituiti durante la modifica; gli input fuori intervallo mostrano un messaggio e ripristinano l’ultima lettura valida.
+
+Il laboratorio del recipiente mostra anche variazioni negative di volume. Il trabocco è la parte positiva della differenza fra volume del liquido e capacità del recipiente, anche in raffreddamento se i coefficienti scelti lo comportano. La colorazione dei due corpi nell’esperimento di equilibrio segue quale è effettivamente più caldo.
