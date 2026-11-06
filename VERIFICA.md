@@ -11,3 +11,15 @@
 - Progresso: completamento di una lezione conservato dopo ricaricamento.
 
 Le animazioni e le curve qualitative restano soggette ai limiti dichiarati nel sito e nel README. Le verifiche non costituiscono una validazione sperimentale né un audit formale di conformità WCAG.
+
+## Pubblicazione e controlli online
+
+- Repository pubblica: https://github.com/zuhns/termolab
+- Sito pubblico: https://zuhns.github.io/termolab/
+- Commit dell’applicazione: `a8e249c962e194a6c5181b693a50b0d1b937516a`.
+- GitHub Pages: branch `main`, cartella `/docs`, HTTPS attivo.
+- Distribuzione verificata: workflow `42296736865`, job build e deploy conclusi con esito `success`.
+- Sul sito pubblico: home caricata, variazione del materiale della barra coerente (rame, 2 m, 50 K → 1,700 mm); glossario aperto e richiuso con ritorno del focus alla parola.
+- Termometro online: lettura iniziale di 20 °C che si avvicina a 70 °C; pausa, scala, ingrandimento e vista combinata provati.
+- Ipotesi del laboratorio finale: salvataggio e recupero dopo ricaricamento provati; testo di prova poi svuotato.
+- Viewport mobile online: conversione 0 K → −273,15 °C verificata; grafico con scorrimento interno, senza overflow della pagina.
